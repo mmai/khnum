@@ -5,6 +5,7 @@ use lettre_email::Email;
 use lettre::{SmtpClient, Transport};
 use lettre::file::FileTransport;
 use lettre::smtp::authentication::{Credentials, Mechanism};
+use lettre::sendmail::SendmailTransport;
 use dotenv::dotenv;
 
 use crate::wiring::DbExecutor;
@@ -56,16 +57,18 @@ pub fn send_invitation(invitation: &Invitation) {
         .build();
     assert!(email.is_ok());
 
-    let smtp_login = dotenv::var("SMTP_LOGIN").unwrap_or_else(|_| "user".to_string());
-    let smtp_pass = dotenv::var("SMTP_PASSWORD").unwrap_or_else(|_| "password".to_string());
-    let smtp_server = dotenv::var("SMTP_SERVER").unwrap_or_else(|_| "smtp.localhost".to_string()); 
-    let creds = Credentials::new( smtp_login, smtp_pass );
+    // let smtp_login = dotenv::var("SMTP_LOGIN").unwrap_or_else(|_| "user".to_string());
+    // let smtp_pass = dotenv::var("SMTP_PASSWORD").unwrap_or_else(|_| "password".to_string());
+    // let smtp_server = dotenv::var("SMTP_SERVER").unwrap_or_else(|_| "smtp.localhost".to_string()); 
+    // let creds = Credentials::new( smtp_login, smtp_pass );
+    // let mut mailer = SmtpClient::new_simple(&smtp_server)
+    //     .unwrap()
+    //     .credentials(creds)
+    //     .transport();
 
-    // Open a remote connection to gmail
-    let mut mailer = SmtpClient::new_simple(&smtp_server)
-        .unwrap()
-        .credentials(creds)
-        .transport();
+    // let mut mailer = SmtpClient::new_unencrypted_localhost().unwrap().transport();
+    let sendmail = dotenv::var("SENDMAIL").unwrap_or_else(|_| "/usr/sbin/sendmail".to_string()); 
+    let mut mailer = SendmailTransport::new_with_command(sendmail);
 
     let result = mailer.send(email.unwrap().into());
 

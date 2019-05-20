@@ -1,0 +1,21 @@
+version: '3.1'
+
+services:
+
+  postgres:
+    container_name: activue_postgres
+    image: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: activue
+      POSTGRES_USER: dbuser
+      POSTGRES_PASSWORD: password
+    ports:
+     - "5432:5432"
+       
+  # redis:
+  #   container_name: book_redis
+  #   image: redis
+  #   restart: unless-stopped
+  #   ports:
+  #     - "6379:6379"

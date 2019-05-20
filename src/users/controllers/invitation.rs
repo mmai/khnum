@@ -13,6 +13,11 @@ use crate::wiring::DbExecutor;
 use crate::users::repository::invitation_handler::CreateInvitation;
 use crate::users::models::Invitation;
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Result {
+    result: bool
+}
+
 pub fn register_email(
     signup_invitation: web::Json<CreateInvitation>,
     db: web::Data<Addr<DbExecutor>>,
@@ -21,14 +26,14 @@ pub fn register_email(
         .from_err()
         .and_then(|db_response| match db_response {
             Ok(invitation) => {
-                send_invitation(&invitation);
-                Ok(HttpResponse::Ok().into())
+                let res = send_invitation(&invitation);
+                Ok(HttpResponse::Ok().json(res))
             }
             Err(err) => Ok(err.error_response()),
         })
 }
 
-pub fn send_invitation(invitation: &Invitation) {
+pub fn send_invitation(invitation: &Invitation) -> Result {
     let sending_email = std::env::var("SENDING_EMAIL_ADDRESS")
         .expect("SENDING_EMAIL_ADDRESS must be set");
     let base_url = dotenv::var("BASE_URL").unwrap_or_else(|_| "localhost".to_string());
@@ -46,8 +51,7 @@ pub fn send_invitation(invitation: &Invitation) {
             .format("%I:%M %p %A, %-d %B, %C%y")
             .to_string()
     );
-    //XXX debug
-    println!("{}", email_body);
+    // println!("{}", email_body);
 
     let email = Email::builder()
         .from((sending_email, "Activue"))
@@ -73,11 +77,10 @@ pub fn send_invitation(invitation: &Invitation) {
     let result = mailer.send(email.unwrap().into());
 
     match result {
-        Ok(res) => {
-            println!("Email sent : \n {:#?}", res);
-        },
+        Ok(res) => Result {result: true} ,
         Err(error) => {
             println!("error \n {:#?}", error);
+            Result {result: false}
         }
     }
 }

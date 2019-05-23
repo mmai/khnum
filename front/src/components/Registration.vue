@@ -1,11 +1,13 @@
 <template>
   <div class="login">
-    <h1>Email Invitation</h1>
+    <h1>Registration</h1>
 
     
     {{ log }}
 
     <p>{{ msg }}</p>
+    <input v-model="login"><br>
+    <input type="password" v-model="password"><br>
     <input v-model="email"><br>
     <button v-on:click="sendVerificationEmail">Send Email</button>
   </div>
@@ -17,6 +19,8 @@ export default {
   name: "Invitation",
   data() {
     return {
+      login: "",
+      password: "",
       email: ""
     }
   },
@@ -26,8 +30,10 @@ export default {
   },
   methods: {
     sendVerificationEmail: function () {
-      axios.post( 'api/invitation', {
+      axios.post( 'api/registration', {
           email: this.email,
+          login: this.login,
+          password: this.password,
       })
       .then((response) => {
         this.msg = "Please check your email.";

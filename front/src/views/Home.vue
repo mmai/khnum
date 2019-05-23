@@ -1,18 +1,18 @@
 <template>
   <div class="home">
     <img alt="Vue logo" src="../assets/logo.png" />
-    <Invitation msg="Please enter your email to receive an Invitation" />
+    <Registration msg="Please enter your email to receive an Invitation" />
   </div>
 </template>
 
 <script>
 // @ is an alias to /src
-import Invitation from "@/components/Invitation.vue";
+import Registration from "@/components/Registration.vue";
 
 export default {
   name: "home",
   components: {
-    Invitation
+    Registration
   }
 };
 </script>

@@ -40,8 +40,8 @@ pub fn send_invitation(invitation: &Invitation) -> Result {
     let recipient = invitation.email.as_str();
     let email_body = format!(
         "Please click on the link below to complete registration. <br/>
-         <a href=\"{url}/register.html?id={id}&email={email}\">
-         {url}/register</a> <br>
+         <a href=\"{url}/register/{id}?email={email}\">
+         {url}/register/{id}?email={email}</a> <br>
          your Invitation expires on <strong>{date}</strong>",
          url = base_url,
          id = invitation.id,

@@ -33,6 +33,7 @@ impl User {
 pub struct SlimUser {
     pub login: String,
     pub email: String,
+    pub expires_at: NaiveDateTime,
 }
 
 impl From<User> for SlimUser {
@@ -40,6 +41,7 @@ impl From<User> for SlimUser {
         SlimUser { 
             login: user.login,
             email: user.email,
+            expires_at: user.expires_at,
         }
     }
 }

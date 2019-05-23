@@ -34,3 +34,27 @@ impl Handler<RegisterUser> for DbExecutor {
         return Ok(inserted_user.into());
     }
 }
+
+
+#[derive(Debug)]
+pub struct ValidateUser {
+    pub login: String,
+}
+
+impl Message for ValidateUser {
+    type Result = Result<(), ServiceError>;
+}
+
+impl Handler<ValidateUser> for DbExecutor {
+    type Result = Result<(), ServiceError>;
+    fn handle(&mut self, msg: ValidateUser, _: &mut Self::Context) -> Self::Result {
+        use crate::schema::users::dsl::users;
+        let conn = &self.0.get().unwrap();
+
+        let updated_row = diesel::update(users.filter(login.eq(msg.login)))
+            .set(active.eq(true))
+            .get_result(conn);
+
+        return Ok(());
+    }
+}

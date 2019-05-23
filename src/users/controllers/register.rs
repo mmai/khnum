@@ -4,10 +4,18 @@ use bcrypt::{DEFAULT_COST, hash, verify};
 use chrono::{Duration, Local};
 use futures::Future;
 
+use lettre_email::Email;
+use lettre::{SmtpClient, Transport};
+use lettre::file::FileTransport;
+use lettre::smtp::authentication::{Credentials, Mechanism};
+use lettre::sendmail::SendmailTransport;
+
 use crate::wiring::DbExecutor;
 
-use crate::users::repository::register_handler::RegisterUser;
+use crate::users::repository::register_handler::{RegisterUser, ValidateUser};
 use crate::users::models::{SlimUser, User};
+
+// ---------------- Register Action------------
 
 // UserData is used to extract data from a post request by the client
 #[derive(Debug, Deserialize)]
@@ -45,20 +53,20 @@ pub struct SendmailResult {
 }
 
 fn send_confirmation(user: &SlimUser) -> SendmailResult {
+    let key = dotenv::var("SECRET_KEY").unwrap();
     let sending_email = std::env::var("SENDING_EMAIL_ADDRESS")
         .expect("SENDING_EMAIL_ADDRESS must be set");
     let base_url = dotenv::var("BASE_URL").unwrap_or_else(|_| "localhost".to_string());
     let recipient = user.email.as_str();
+    let link = format!("{}{}", user.login, key);
+    let hashlink = hash(link , DEFAULT_COST).expect("Hashing error");
+    let url = format!("{}/register/{}?l={}", base_url, hashlink, user.login);
     let email_body = format!(
         "Please click on the link below to complete registration. <br/>
-         <a href=\"{url}/register/{id}?email={email}\">
-         {url}/register/{id}?email={email}</a> <br>
+         <a href=\"{url}\">{url}</a> <br>
          your Invitation expires on <strong>{date}</strong>",
-         url = base_url,
-         id = invitation.id,
-         email = invitation.email,
-         date = invitation
-            .expires_at
+         url = url,
+         date = user.expires_at
             .format("%I:%M %p %A, %-d %B, %C%y")
             .to_string()
     );
@@ -88,10 +96,36 @@ fn send_confirmation(user: &SlimUser) -> SendmailResult {
     let result = mailer.send(email.unwrap().into());
 
     match result {
-        Ok(res) => Result {result: true} ,
+        Ok(res) => SendmailResult {result: true} ,
         Err(error) => {
             println!("error \n {:#?}", error);
-            Result {result: false}
+            SendmailResult {result: false}
         }
     }
 }
+
+struct ValidateResult {
+    message: String,
+    result: bool
+}
+
+// ---------------- Validate action ------------
+pub fn validate( data: web::Path<(String, String)>, db: web::Data<Addr<DbExecutor>>,) 
+    -> impl Future<Item = HttpResponse, Error = Error> {
+    let key = dotenv::var("SECRET_KEY").unwrap();
+    let hashlink = data.0;
+    let login = data.1;
+    let local_hashlink = format!("{}{}", login, key);
+    if (hashlink != local_hashlink){
+        return Ok(HttpResponse::Ok().json(ValidateResult { result: false, message: "Incorrect link".as_str() }));
+    }
+    db.send(ValidateUser { login: login })
+        .from_err()
+        .and_then(|db_response| match db_response {
+            Ok(user) => {
+                Ok(HttpResponse::Ok().json(ValidateResult { result: true, message: "User activated".as_str() }))
+            }
+            Err(err) => Ok(HttpResponse::Ok().json(ValidateResult { result: false, message: "User not found".as_str() }))
+        })
+}
+

@@ -1,8 +1,8 @@
 use actix::Addr;
 use actix_web::{web, Error, HttpResponse, ResponseError};
 use bcrypt::{DEFAULT_COST, hash, verify};
-use chrono::{Duration, Local};
-use futures::Future;
+use chrono::{Duration, Local, NaiveDateTime};
+use futures::future::{Future, result};
 
 use lettre_email::Email;
 use lettre::{SmtpClient, Transport};
@@ -39,8 +39,8 @@ pub fn register(
     db.send(register_user)
         .from_err()
         .and_then(|db_response| match db_response {
-            Ok(user) => {
-                let res = send_confirmation(&user);
+            Ok((user, expires_at)) => {
+                let res = send_confirmation(&user, &expires_at);
                 Ok(HttpResponse::Ok().json(res))
             }
             Err(err) => Ok(err.error_response()),
@@ -52,7 +52,7 @@ pub struct SendmailResult {
     result: bool
 }
 
-fn send_confirmation(user: &SlimUser) -> SendmailResult {
+fn send_confirmation(user: &SlimUser, expires_at: &NaiveDateTime) -> SendmailResult {
     let key = dotenv::var("SECRET_KEY").unwrap();
     let sending_email = std::env::var("SENDING_EMAIL_ADDRESS")
         .expect("SENDING_EMAIL_ADDRESS must be set");
@@ -66,7 +66,7 @@ fn send_confirmation(user: &SlimUser) -> SendmailResult {
          <a href=\"{url}\">{url}</a> <br>
          your Invitation expires on <strong>{date}</strong>",
          url = url,
-         date = user.expires_at
+         date = expires_at
             .format("%I:%M %p %A, %-d %B, %C%y")
             .to_string()
     );
@@ -104,6 +104,7 @@ fn send_confirmation(user: &SlimUser) -> SendmailResult {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
 struct ValidateResult {
     message: String,
     result: bool
@@ -111,21 +112,19 @@ struct ValidateResult {
 
 // ---------------- Validate action ------------
 pub fn validate( data: web::Path<(String, String)>, db: web::Data<Addr<DbExecutor>>,) 
-    -> impl Future<Item = HttpResponse, Error = Error> {
+    // -> impl Future<Item = HttpResponse, Error = Error> {
+    -> Box<Future<Item = HttpResponse, Error = Error>> {
     let key = dotenv::var("SECRET_KEY").unwrap();
-    let hashlink = data.0;
-    let login = data.1;
+    let hashlink = &data.0;
+    let login = data.1.clone();
     let local_hashlink = format!("{}{}", login, key);
-    if (hashlink != local_hashlink){
-        return Ok(HttpResponse::Ok().json(ValidateResult { result: false, message: "Incorrect link".as_str() }));
+    if *hashlink != local_hashlink {
+        return Box::new(result(Ok(HttpResponse::Ok().json(ValidateResult { result: false, message: String::from("Incorrect link") }))));
     }
-    db.send(ValidateUser { login: login })
+    Box::new(db.send(ValidateUser { login: login })
         .from_err()
         .and_then(|db_response| match db_response {
-            Ok(user) => {
-                Ok(HttpResponse::Ok().json(ValidateResult { result: true, message: "User activated".as_str() }))
-            }
-            Err(err) => Ok(HttpResponse::Ok().json(ValidateResult { result: false, message: "User not found".as_str() }))
-        })
+            Ok(user) => { Ok(HttpResponse::Ok().json(ValidateResult { result: true, message: String::from("User activated") })) }
+            Err(err) => { Ok(HttpResponse::Ok().json(ValidateResult { result: false, message: String::from("User not found") })) }
+        }))
 }
-

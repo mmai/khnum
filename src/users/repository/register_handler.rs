@@ -6,8 +6,8 @@ use uuid::Uuid;
 use crate::wiring::DbExecutor;
 use crate::errors::ServiceError;
 
-use crate::users::models::{SlimUser, User};
-use crate::users::utils::hash_password;
+use crate::schema::users::dsl::*;
+use crate::users::models::{SlimUser, User, NewUser};
 
 // to be used to send data via the Actix actor system
 #[derive(Debug)]
@@ -18,20 +18,20 @@ pub struct RegisterUser {
 }
 
 impl Message for RegisterUser {
-    type Result = Result<SlimUser, ServiceError>;
+    type Result = Result<(SlimUser, NaiveDateTime), ServiceError>;
 }
 
 impl Handler<RegisterUser> for DbExecutor {
-    type Result = Result<SlimUser, ServiceError>;
+    type Result = Result<(SlimUser, NaiveDateTime), ServiceError>;
     fn handle(&mut self, msg: RegisterUser, _: &mut Self::Context) -> Self::Result {
-        use crate::schema::users::dsl::users;
         let conn = &self.0.get().unwrap();
 
-        let user = User::with_details(msg.login, msg.email, msg.password);
+        let user = NewUser::with_details(msg.login, msg.email, msg.password);
         let inserted_user: User =
             diesel::insert_into(users).values(&user).get_result(conn)?;
+        let expire_date = (&inserted_user).expires_at.unwrap();
 
-        return Ok(inserted_user.into());
+        return Ok((inserted_user.into(), expire_date));
     }
 }
 
@@ -48,10 +48,9 @@ impl Message for ValidateUser {
 impl Handler<ValidateUser> for DbExecutor {
     type Result = Result<(), ServiceError>;
     fn handle(&mut self, msg: ValidateUser, _: &mut Self::Context) -> Self::Result {
-        use crate::schema::users::dsl::users;
         let conn = &self.0.get().unwrap();
 
-        let updated_row = diesel::update(users.filter(login.eq(msg.login)))
+        let updated_row: Result<User, diesel::result::Error> = diesel::update(users.filter(login.eq(msg.login)))
             .set(active.eq(true))
             .get_result(conn);
 

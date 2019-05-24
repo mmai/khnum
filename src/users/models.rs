@@ -4,27 +4,38 @@ use uuid::Uuid;
 
 use crate::schema::{users};
 
-#[derive(Debug, Serialize, Deserialize, Queryable, Insertable)]
-#[table_name = "users"]
+#[derive(Debug, Serialize, Deserialize, Queryable)]
+// #[table_name = "users"]
 pub struct User {
     pub id: i32,
     pub login: String,
     pub email: String,
     pub password: String,
-    pub active: bool,
     pub created_at: NaiveDateTime,
-    pub expires_at: NaiveDateTime,
+    pub active: bool,
+    pub expires_at: Option<NaiveDateTime>,
 }
 
-impl User {
+#[derive(Debug, Serialize, Deserialize, Insertable)]
+#[table_name = "users"]
+pub struct NewUser {
+    pub login: String,
+    pub email: String,
+    pub password: String,
+    pub created_at: NaiveDateTime,
+    pub active: bool,
+    pub expires_at: Option<NaiveDateTime>,
+}
+
+impl NewUser {
     pub fn with_details(login: String, email: String, password: String) -> Self {
-        User {
+        NewUser {
             login,
             email,
             password,
-            active: false,
             created_at: Local::now().naive_local(),
-            expires_at: Local::now().naive_local() + Duration::hours(24),
+            active: false,
+            expires_at: Some(Local::now().naive_local() + Duration::hours(24)),
         }
     }
 }
@@ -33,7 +44,6 @@ impl User {
 pub struct SlimUser {
     pub login: String,
     pub email: String,
-    pub expires_at: NaiveDateTime,
 }
 
 impl From<User> for SlimUser {
@@ -41,7 +51,6 @@ impl From<User> for SlimUser {
         SlimUser { 
             login: user.login,
             email: user.email,
-            expires_at: user.expires_at,
         }
     }
 }

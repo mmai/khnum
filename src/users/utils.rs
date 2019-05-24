@@ -27,15 +27,18 @@ struct Claims {
     exp: i64,
     // user email
     email: String,
+    // user login
+    login: String,
 }
 
 // struct to get converted to token and back
 impl Claims {
-    fn with_email(email: &str) -> Self {
+    fn with_email(email: &str, login: &str) -> Self {
         Claims {
             iss: "localhost".into(),
             sub: "auth".into(),
             email: email.to_owned(),
+            login: login.to_owned(),
             iat: Local::now().timestamp(),
             exp: (Local::now() + Duration::hours(24)).timestamp(),
         }
@@ -46,12 +49,13 @@ impl From<Claims> for SlimUser {
     fn from(claims: Claims) -> Self {
         SlimUser {
             email: claims.email,
+            login: claims.login,
         }
     }
 }
 
 pub fn create_token(data: &SlimUser) -> Result<String, ServiceError> {
-    let claims = Claims::with_email(data.email.as_str());
+    let claims = Claims::with_email(data.email.as_str(), data.login.as_str());
     encode(&Header::default(), &claims, get_secret().as_ref())
         .map_err(|_err| ServiceError::InternalServerError)
 }

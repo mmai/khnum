@@ -58,14 +58,18 @@ fn main() -> std::io::Result<()> {
                             .route(web::get().to_async(users::controllers::auth::get_me)),
                     )
                     .service(
-                        web::resource("/register/").route( 
+                        web::resource("/register").route( 
                             web::post().to_async(users::controllers::register::register),
                         ),
                     )
             )
+            // .service(
+            //     web::resource("/register/{hashlink}?l={login}") // route to validate registration
+            //     .route(web::get().to_async(users::controllers::register::validate)),
+            //     )
             .service(
-                web::resource("/register/{hashlink}?l={login}") // route to validate registration
-                .route(web::post().to_async(users::controllers::register::validate)),
+                web::resource("/register/{hashlink}/{login}") // route to validate registration
+                .route(web::get().to_async(users::controllers::register::validate)),
                 )
             // serve static files
             .service(fs::Files::new("/", "./static/").index_file("index.html"))

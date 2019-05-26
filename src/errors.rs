@@ -3,6 +3,7 @@ use derive_more::Display;
 use diesel::result::{DatabaseErrorKind, Error};
 use std::convert::From;
 use uuid::ParseError;
+use actix::MailboxError;
 
 #[derive(Debug, Display)]
 pub enum ServiceError {
@@ -29,6 +30,12 @@ impl ResponseError for ServiceError {
                 HttpResponse::Unauthorized().json("Unauthorized")
             }
         }
+    }
+}
+
+impl From<MailboxError> for ServiceError {
+    fn from(_: MailboxError) -> ServiceError {
+        ServiceError::InternalServerError
     }
 }
 

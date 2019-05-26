@@ -6,8 +6,11 @@
     {{ log }}
 
     <p>{{ msg }}</p>
+    <label for='login'>Login</label>
     <input v-model="login"><br>
+    <label for='password'>Password</label>
     <input type="password" v-model="password"><br>
+    <label for='email'>Email</label>
     <input v-model="email"><br>
     <button v-on:click="sendVerificationEmail">Send Email</button>
   </div>
@@ -30,7 +33,7 @@ export default {
   },
   methods: {
     sendVerificationEmail: function () {
-      axios.post( 'api/registration', {
+      axios.post( 'api/register', {
           email: this.email,
           login: this.login,
           password: this.password,

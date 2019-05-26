@@ -30,7 +30,6 @@ impl Handler<RegisterUser> for DbExecutor {
         let inserted_user: User =
             diesel::insert_into(users).values(&user).get_result(conn)?;
         let expire_date = (&inserted_user).expires_at.unwrap();
-
         return Ok((inserted_user.into(), expire_date));
     }
 }

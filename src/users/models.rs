@@ -5,11 +5,11 @@ use uuid::Uuid;
 use crate::schema::{users};
 
 #[derive(Debug, Serialize, Deserialize, Queryable)]
-// #[table_name = "users"]
+// XXX keep same field order as in schema.rs
 pub struct User {
     pub id: i32,
-    pub login: String,
     pub email: String,
+    pub login: String,
     pub password: String,
     pub created_at: NaiveDateTime,
     pub active: bool,

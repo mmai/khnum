@@ -4,6 +4,8 @@ use bcrypt::{DEFAULT_COST, hash, verify};
 use chrono::{Duration, Local, NaiveDateTime};
 use futures::future::{Future, result};
 
+use url::form_urlencoded;
+
 use lettre_email::Email;
 use lettre::{SmtpClient, Transport};
 use lettre::file::FileTransport;
@@ -43,7 +45,10 @@ pub fn register(
                 let res = send_confirmation(&user, &expires_at);
                 Ok(HttpResponse::Ok().json(res))
             }
-            Err(err) => Ok(err.error_response()),
+            Err(err) => {
+                println!("Error when registering user : {}", err);
+                Err(err.into())
+            }
         })
 }
 
@@ -52,15 +57,20 @@ pub struct SendmailResult {
     result: bool
 }
 
-fn send_confirmation(user: &SlimUser, expires_at: &NaiveDateTime) -> SendmailResult {
+fn make_confirmation_link(login: &str) -> String {
     let key = dotenv::var("SECRET_KEY").unwrap();
+    format!("{}{}", login, key)
+}
+
+fn send_confirmation(user: &SlimUser, expires_at: &NaiveDateTime) -> SendmailResult {
     let sending_email = std::env::var("SENDING_EMAIL_ADDRESS")
         .expect("SENDING_EMAIL_ADDRESS must be set");
     let base_url = dotenv::var("BASE_URL").unwrap_or_else(|_| "localhost".to_string());
     let recipient = user.email.as_str();
-    let link = format!("{}{}", user.login, key);
-    let hashlink = hash(link , DEFAULT_COST).expect("Hashing error");
-    let url = format!("{}/register/{}?l={}", base_url, hashlink, user.login);
+    let link = make_confirmation_link(&user.login);
+    let mut hashlink = hash(link , DEFAULT_COST).expect("Hashing error");
+    // hashlink = form_urlencoded::byte_serialize(hashlink.as_bytes()).collect();
+    let url = format!("{}/register/{}/{}", base_url, hashlink, user.login);
     let email_body = format!(
         "Please click on the link below to complete registration. <br/>
          <a href=\"{url}\">{url}</a> <br>
@@ -71,6 +81,7 @@ fn send_confirmation(user: &SlimUser, expires_at: &NaiveDateTime) -> SendmailRes
             .to_string()
     );
     // println!("{}", email_body);
+    // println!("{}", recipient);
 
     let email = Email::builder()
         .from((sending_email, "Activue"))
@@ -96,7 +107,7 @@ fn send_confirmation(user: &SlimUser, expires_at: &NaiveDateTime) -> SendmailRes
     let result = mailer.send(email.unwrap().into());
 
     match result {
-        Ok(res) => SendmailResult {result: true} ,
+        Ok(_res) => SendmailResult {result: true} ,
         Err(error) => {
             println!("error \n {:#?}", error);
             SendmailResult {result: false}
@@ -114,17 +125,17 @@ struct ValidateResult {
 pub fn validate( data: web::Path<(String, String)>, db: web::Data<Addr<DbExecutor>>,) 
     // -> impl Future<Item = HttpResponse, Error = Error> {
     -> Box<Future<Item = HttpResponse, Error = Error>> {
-    let key = dotenv::var("SECRET_KEY").unwrap();
     let hashlink = &data.0;
     let login = data.1.clone();
-    let local_hashlink = format!("{}{}", login, key);
-    if *hashlink != local_hashlink {
+    let local_link = make_confirmation_link(&login);
+    let is_valid = verify(local_link, hashlink).expect("Error using bcrypt");
+    if !is_valid {
         return Box::new(result(Ok(HttpResponse::Ok().json(ValidateResult { result: false, message: String::from("Incorrect link") }))));
     }
     Box::new(db.send(ValidateUser { login: login })
         .from_err()
         .and_then(|db_response| match db_response {
-            Ok(user) => { Ok(HttpResponse::Ok().json(ValidateResult { result: true, message: String::from("User activated") })) }
-            Err(err) => { Ok(HttpResponse::Ok().json(ValidateResult { result: false, message: String::from("User not found") })) }
+            Ok(_user) => { Ok(HttpResponse::Ok().json(ValidateResult { result: true, message: String::from("User activated") })) }
+            Err(_err) => { Ok(HttpResponse::Ok().json(ValidateResult { result: false, message: String::from("User not found") })) }
         }))
 }

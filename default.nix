@@ -16,6 +16,7 @@ stdenv.mkDerivation rec {
   shellHook = ''
     export DATABASE_URL=postgres://dbuser:password@localhost:5432/activue
     which diesel >/dev/null 2>&1 || cargo install diesel_cli --no-default-features --features postgres
+    which cargo-tarpaulin >/dev/null 2>&1 || cargo install cargo-tarpaulin
   '';
 
 }

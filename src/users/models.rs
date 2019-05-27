@@ -40,7 +40,7 @@ impl NewUser {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct SlimUser {
     pub login: String,
     pub email: String,
@@ -53,4 +53,26 @@ impl From<User> for SlimUser {
             email: user.email,
         }
     }
+}
+
+#[test]
+fn user_with_details() {
+    let u = NewUser::with_details(String::from("login"), String::from("email@toto.fr"), String::from("pass"));
+
+    assert_eq!(u.login , String::from("login"));
+}
+
+#[test]
+fn slim_from_user() {
+    let u = User {
+        id: 1,
+        login: "login".into(),
+        email: "email@toto.fr".into(),
+        password: "pass".into(),
+        created_at: Local::now().naive_local(),
+        active: false,
+        expires_at: None,
+    };
+    let s:SlimUser = u.into();
+    assert_eq!(SlimUser { login: "login".into(), email: "email@toto.fr".into() }, s);
 }

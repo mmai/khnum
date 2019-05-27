@@ -1,7 +1,6 @@
 use actix::{Addr,SyncArbiter,Actor,SyncContext};
 use diesel::prelude::{PgConnection, SqliteConnection};
 use diesel::r2d2;
-use dotenv;
 use num_cpus;
 
 #[cfg(not(any(feature = "sqlite", feature = "postgres")))]
@@ -22,8 +21,7 @@ impl Actor for  DbExecutor{
 }
 
 #[cfg_attr(tarpaulin, skip)]
-pub fn db_init() -> Addr<DbExecutor> {
-    let db_url = dotenv::var("DATABASE_URL").expect("DATABASE_URL must be set");
+pub fn db_init(db_url: String) -> Addr<DbExecutor> {
     // println!("Database : {}", db_url);
     let manager = r2d2::ConnectionManager::<Connection>::new(db_url);
     let pool = r2d2::Pool::builder().max_size(5).build(manager).expect("Failed to create pool.");

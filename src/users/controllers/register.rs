@@ -139,3 +139,18 @@ pub fn validate( data: web::Path<(String, String)>, db: web::Data<Addr<DbExecuto
             Err(_err) => { Ok(HttpResponse::Ok().json(ValidateResult { result: false, message: String::from("User not found") })) }
         }))
 }
+
+// #[test]
+// fn test_register() {
+//     let user_data = UserData {
+//         email: "email@toto.fr",
+//         login: "login",
+//         password: "pass",
+//     };
+//     let db_addr = crate::wiring::db_init("")
+//         
+//     let res = register(user_data.into(),
+//     db: web::Data<Addr<DbExecutor>>,
+// ) -> impl Future<Item = HttpResponse, Error = Error> {
+//
+// }

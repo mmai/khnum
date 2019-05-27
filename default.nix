@@ -11,11 +11,9 @@ stdenv.mkDerivation rec {
   ];
 
   # (DATABASE_URL env variable overrides value in .env file)
-  # diesel features -> install is global, use the followning command if you have other projects with other db engines on your machine :
-    # cargo install diesel_cli 
   shellHook = ''
     export DATABASE_URL=postgres://dbuser:password@localhost:5432/activue
-    which diesel >/dev/null 2>&1 || cargo install diesel_cli --no-default-features --features postgres
+    which diesel >/dev/null 2>&1 || cargo install diesel_cli
     which cargo-tarpaulin >/dev/null 2>&1 || cargo install cargo-tarpaulin
   '';
 

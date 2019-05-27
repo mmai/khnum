@@ -9,3 +9,5 @@ test:
 	cargo tarpaulin -v
 run:
 	cargo watch -x run
+doc:
+	cargo doc --open

@@ -13,7 +13,7 @@ use actix_web::middleware::{
 };
 use actix_web::{web, App, HttpServer};
 use chrono::Duration;
-use diesel::{r2d2::ConnectionManager, PgConnection};
+use diesel::{r2d2::ConnectionManager};
 use dotenv::dotenv;
 
 mod wiring;
@@ -33,10 +33,8 @@ fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         // secret is a random minimum 32 bytes long base 64 string
-        let secret: String =
-            dotenv::var("SECRET_KEY").unwrap_or_else(|_| "0123".repeat(8));
-        let domain: String =
-            dotenv::var("DOMAIN").unwrap_or_else(|_| "localhost".to_string());
+        let secret: String = dotenv::var("SECRET_KEY").unwrap_or_else(|_| "0123".repeat(8));
+        let domain: String = dotenv::var("DOMAIN").unwrap_or_else(|_| "localhost".to_string());
 
         App::new()
             .data(address.clone())
@@ -49,26 +47,18 @@ fn main() -> std::io::Result<()> {
                     .max_age_time(Duration::days(1))
                     .secure(false), // this can only be true if you have https
             ))
-            .service( 
-                web::scope("/api") // everything under '/api/' route
-                    .service(
-                        web::resource("/auth") // routes for authentication
+            .service( web::scope("/api") // everything under '/api/' route
+                    .service( web::resource("/auth") // routes for authentication
                             .route(web::post().to_async(users::controllers::auth::login))
                             .route(web::delete().to(users::controllers::auth::logout))
                             .route(web::get().to_async(users::controllers::auth::get_me)),
                     )
-                    .service(
-                        web::resource("/register").route( 
+                    .service( web::resource("/register").route( 
                             web::post().to_async(users::controllers::register::register),
                         ),
                     )
             )
-            // .service(
-            //     web::resource("/register/{hashlink}?l={login}") // route to validate registration
-            //     .route(web::get().to_async(users::controllers::register::validate)),
-            //     )
-            .service(
-                web::resource("/register/{hashlink}/{login}") // route to validate registration
+            .service( web::resource("/register/{hashlink}/{login}") // route to validate registration
                 .route(web::get().to_async(users::controllers::register::validate)),
                 )
             // serve static files

@@ -27,11 +27,14 @@ serde="1.0"
 uuid = { version = "0.6.5", features = ["serde", "v4"] }
 num_cpus = "1.10.0"
 url = "1.7.2"
+diesel_migrations = "1.4.0"
 
 [features]
 default = ["postgres"]
 postgres = ["diesel/postgres"]
-sqlite = ["diesel/sqlite"]
+test = ["diesel/sqlite"]
 debug-mailer = []
-test = []
+
+[dev-dependencies]
+actix-http-test = "0.2.0"
 

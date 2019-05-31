@@ -27,8 +27,13 @@ impl Handler<RegisterUser> for DbExecutor {
         let conn = &self.0.get().unwrap();
 
         let user = NewUser::with_details(msg.login, msg.email, msg.password);
-        let inserted_user: User =
-            diesel::insert_into(users).values(&user).get_result(conn)?;
+        #[cfg(not(test))]
+        let inserted_user: User = diesel::insert_into(users).values(&user).get_result(conn)?;
+        #[cfg(test)]
+        diesel::insert_into(users).values(&user).execute(conn)?;
+        #[cfg(test)]
+        let inserted_user: User = users.order(id.desc()).first(conn)?;
+
         let expire_date = (&inserted_user).expires_at.unwrap();
         return Ok((inserted_user.into(), expire_date));
     }
@@ -49,6 +54,12 @@ impl Handler<ValidateUser> for DbExecutor {
     fn handle(&mut self, msg: ValidateUser, _: &mut Self::Context) -> Self::Result {
         let conn = &self.0.get().unwrap();
 
+        #[cfg(test)]
+        diesel::update(users.filter(login.eq(msg.login)))
+            .set(active.eq(true))
+            .execute(conn)?;
+
+        #[cfg(not(test))]
         let updated_row: Result<User, diesel::result::Error> = diesel::update(users.filter(login.eq(msg.login)))
             .set(active.eq(true))
             .get_result(conn);

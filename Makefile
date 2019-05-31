@@ -8,7 +8,7 @@ migrate:
 # 	docker-compose -f sentry-docker-compose.yml up 
 test:
 	# launch tests & coverage, for tests only: "cargo test"
-	cargo tarpaulin -v
+	cargo tarpaulin -v --features sqlite
 run:
 	cargo watch -x run
 doc:

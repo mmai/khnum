@@ -5,6 +5,10 @@ extern crate diesel;
 #[macro_use]
 extern crate serde_derive;
 
+//For tests
+#[macro_use]
+extern crate diesel_migrations;
+
 use actix::prelude::*;
 use actix_files as fs;
 use actix_web::middleware::{

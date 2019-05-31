@@ -9,7 +9,7 @@ use crate::wiring::DbExecutor;
 use crate::errors::ServiceError;
 use crate::users::models::{SlimUser, User};
 use crate::users::utils::decode_token;
-use crate::wiring::Connection;
+use crate::wiring::MyConnection;
 
 #[derive(Debug, Deserialize)]
 pub struct AuthData {
@@ -25,7 +25,7 @@ impl Handler<AuthData> for DbExecutor {
     type Result = Result<SlimUser, ServiceError>;
     fn handle(&mut self, msg: AuthData, _: &mut Self::Context) -> Self::Result {
         use crate::schema::users::dsl::{email, users};
-        let conn: &Connection = &self.0.get().unwrap();
+        let conn: &MyConnection = &self.0.get().unwrap();
 
         let mut items = users.filter(email.eq(&msg.email)).load::<User>(conn)?;
 

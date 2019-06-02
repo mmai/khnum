@@ -53,12 +53,12 @@ impl From<Error> for ServiceError {
         // But this would be helpful to easily map errors as our app grows
         match error {
             Error::DatabaseError(kind, info) => {
-                if let DatabaseErrorKind::UniqueViolation = kind {
+                // if let DatabaseErrorKind::UniqueViolation = kind {
                     let message =
                         info.details().unwrap_or_else(|| info.message()).to_string();
                     return ServiceError::BadRequest(message);
-                }
-                ServiceError::InternalServerError
+                // }
+                // ServiceError::InternalServerError
             }
             _ => ServiceError::InternalServerError,
         }

@@ -40,6 +40,34 @@ impl Handler<RegisterUser> for DbExecutor {
 }
 
 
+
+
+// // to be used to send data via the Actix actor system
+// #[cfg(test)]
+// #[derive(Debug)]
+// pub enum DoMigrations { DoMigrations }
+//
+// #[cfg(test)]
+// impl Message for DoMigrations {
+//     type Result = Result<(), ServiceError>;
+// }
+//
+// #[cfg(test)]
+// embed_migrations!("migrations/sqlite");
+//
+// #[cfg(test)]
+// impl Handler<DoMigrations> for DbExecutor {
+//     type Result = Result<(), ServiceError>;
+//     fn handle(&mut self, msg: DoMigrations, _: &mut Self::Context) -> Self::Result {
+//         let conn = &self.0.get().unwrap();
+//         embedded_migrations::run(&conn);
+//         return Ok(());
+//     }
+// }
+
+
+
+
 #[derive(Debug)]
 pub struct ValidateUser {
     pub login: String,

@@ -9,6 +9,8 @@ migrate:
 test:
 	# launch tests & coverage, for tests only: "cargo test"
 	cargo tarpaulin -v --features sqlite
+tmptest:
+	rm -f /tmp/activue.sqlite3 && export $(cat .env | xargs) && cargo test
 run:
 	cargo watch -x run
 doc:

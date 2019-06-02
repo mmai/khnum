@@ -20,7 +20,7 @@ use crate::users::models::{SlimUser, User};
 // ---------------- Register Action------------
 
 // UserData is used to extract data from a post request by the client
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct UserData {
     pub email: String,
     pub login: String,
@@ -144,56 +144,35 @@ pub fn validate( data: web::Path<(String, String)>, db: web::Data<Addr<DbExecuto
 mod tests {
     use crate::users;
     use actix_web::{web, test, http, App};
+    use actix_http::HttpService;
+    use actix_http_test::TestServer;
 
+    #[test]
+    fn test() {
+        let mut srv = TestServer::new( || {
+            let conn_addr = crate::wiring::test_conn_init();
+            HttpService::new(
+                App::new().data(conn_addr.clone()).service(
+                    web::resource("/register").route(
+                        web::post().to_async(users::controllers::register::register)
+                    )
+                )
+            )
+        });
 
+        let user = super::UserData {
+            email: String::from("email@toto.fr"),
+            login: String::from("login"),
+            password: String::from("pass")
+        };
+        let req = srv.post("/register")
+            .header( http::header::CONTENT_TYPE, http::header::HeaderValue::from_static("application/json"),);
 
+        let response = srv.block_on(req.send_json(&user)).unwrap();
+        assert!(response.status().is_success());
 
-    // with actix 0.7 (from doc "testing" page ):
-// #[test]
-// fn test() {
-//     let srv = TestServer::build_with_state(|| {
-//         // we can start diesel actors
-//         let addr = SyncArbiter::start(3, || {
-//             DbExecutor(SqliteConnection::establish("test.db").unwrap())
-//         });
-//         // then we can construct custom state, or it could be `()`
-//         MyState{addr: addr}
-//    })
-//
-//    // register server handlers and start test server
-//    .start(|app| {
-//         app.resource(
-//             "/{username}/index.html", |r| r.with(
-//                 |p: Path<PParam>| format!("Welcome {}!", p.username)));
-//     });
-//     
-//     // now we can run our test code
-// );
-
-
-
-
-    // My try with actix 1.0.0rc -> system is not started
-    // #[test]
-    // fn test_register() {
-    //     let conn_addr = crate::wiring::test_conn_init();
-    //     let mut app = test::init_service(
-    //         App::new().data(conn_addr.clone()).service(
-    //             web::resource("/register").route(
-    //                 web::post().to_async(users::controllers::register::register)
-    //             )
-    //         )
-    //     );
-    //
-    //     let payload = r#"{ "email": "email@toto.fr", "login": "login", "password": "pass"}"#.as_bytes();
-    //     let req = actix_web::test::TestRequest::post()
-    //         .uri("/register")
-    //         .header( http::header::CONTENT_TYPE, http::header::HeaderValue::from_static("application/json"),)
-    //         .set_payload(payload)
-    //         .to_request();
-    //
-    //     let result: users::models::User = actix_web::test::read_response_json(&mut app, req);
-    //     assert_eq!(result.login, "login");
-    // }
+        //     let result: users::models::User = actix_web::test::read_response_json(&mut app, req);
+        //     assert_eq!(result.login, "login");
+    }
 
 }

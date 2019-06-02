@@ -38,20 +38,11 @@ embed_migrations!("migrations/sqlite");
 // #[cfg(feature = "sqlite")]
 #[cfg(test)]
 pub fn test_conn_init() -> Addr<DbExecutor> {
-        let conn = SqliteConnection::establish(":memory:").unwrap();
+        let conn = SqliteConnection::establish("/tmp/activue.sqlite3").unwrap();
+        // let conn = SqliteConnection::establish(":memory:").unwrap();
         embedded_migrations::run(&conn);
 
-        let manager = r2d2::ConnectionManager::<MyConnection>::new(":memory:");
+        let manager = r2d2::ConnectionManager::<MyConnection>::new("/tmp/activue.sqlite3");
         let pool = r2d2::Pool::builder().max_size(1).build(manager).expect("Failed to create pool.");
         SyncArbiter::start( 1, move || { DbExecutor(pool.clone()) })
 }
-
-   // // register server handlers and start test server
-   // .start(|app| {
-   //      app.resource(
-   //          "/{username}/index.html", |r| r.with(
-   //              |p: Path<PParam>| format!("Welcome {}!", p.username)));
-   //  });
-    
-    // now we can run our test code
-// );

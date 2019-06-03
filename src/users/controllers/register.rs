@@ -1,6 +1,6 @@
 use actix::Addr;
 use actix_web::{ test, web, Error, HttpResponse, ResponseError, http};
-use bcrypt::{DEFAULT_COST, hash, verify};
+use bcrypt::verify;
 use chrono::{Duration, Local, NaiveDateTime};
 use futures::future::{Future, result};
 
@@ -16,6 +16,7 @@ use crate::wiring::DbExecutor;
 
 use crate::users::repository::register_handler::{RegisterUser, ValidateUser};
 use crate::users::models::{SlimUser, User};
+use crate::users::utils::hash_password;
 
 // ---------------- Register Action------------
 
@@ -32,7 +33,7 @@ pub fn register(
     db: web::Data<Addr<DbExecutor>>,
 ) -> impl Future<Item = HttpResponse, Error = Error> {
     let user_data = user_data.into_inner();
-    let hashed = hash(user_data.password, DEFAULT_COST).expect("Hashing error");
+    let hashed = hash_password(&user_data.password).expect("Error hashing password");
     let register_user = RegisterUser {
         email: user_data.email,
         login: user_data.login,
@@ -68,8 +69,7 @@ fn send_confirmation(user: &SlimUser, expires_at: &NaiveDateTime) -> SendmailRes
     let base_url = dotenv::var("BASE_URL").unwrap_or_else(|_| "localhost".to_string());
     let recipient = user.email.as_str();
     let link = make_confirmation_link(&user.login);
-    let mut hashlink = hash(link , DEFAULT_COST).expect("Hashing error");
-    // hashlink = form_urlencoded::byte_serialize(hashlink.as_bytes()).collect();
+    let hashlink = hash_password(&link).expect("Error hashing link");
     let url = format!("{}/register/{}/{}", base_url, hashlink, user.login);
     let email_body = format!(
         "Please click on the link below to complete registration. <br/>
@@ -104,8 +104,11 @@ fn send_confirmation(user: &SlimUser, expires_at: &NaiveDateTime) -> SendmailRes
     let sendmail = dotenv::var("SENDMAIL").unwrap_or_else(|_| "/usr/sbin/sendmail".to_string()); 
     let mut mailer = SendmailTransport::new_with_command(sendmail);
 
-    let result = mailer.send(email.unwrap().into());
+    // We don't send the mail in test environment
+    #[cfg(test)]
+    return SendmailResult {result: true};
 
+    let result = mailer.send(email.unwrap().into());
     match result {
         Ok(_res) => SendmailResult {result: true} ,
         Err(error) => {
@@ -146,9 +149,12 @@ mod tests {
     use actix_web::{web, test, http, App};
     use actix_http::HttpService;
     use actix_http_test::TestServer;
+    use dotenv::dotenv;
+    use std::time::Duration;
 
     #[test]
     fn test() {
+        dotenv().ok();
         let mut srv = TestServer::new( || {
             let conn_addr = crate::wiring::test_conn_init();
             HttpService::new(
@@ -166,9 +172,11 @@ mod tests {
             password: String::from("pass")
         };
         let req = srv.post("/register")
+            .timeout(Duration::new(15, 0))
             .header( http::header::CONTENT_TYPE, http::header::HeaderValue::from_static("application/json"),);
 
         let response = srv.block_on(req.send_json(&user)).unwrap();
+        println!("response : {:?}", response);
         assert!(response.status().is_success());
 
         //     let result: users::models::User = actix_web::test::read_response_json(&mut app, req);

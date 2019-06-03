@@ -7,10 +7,11 @@ migrate:
 # sentry: 
 # 	docker-compose -f sentry-docker-compose.yml up 
 test:
+	cargo test
+coverage:
 	# launch tests & coverage, for tests only: "cargo test"
-	cargo tarpaulin -v --features sqlite
-tmptest:
-	rm -f /tmp/activue.sqlite3 && export $(cat .env | xargs) && cargo test
+	echo "currently fails to #190 tarpaulin bug"
+	cargo tarpaulin -v
 run:
 	cargo watch -x run
 doc:

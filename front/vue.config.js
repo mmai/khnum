@@ -1,3 +1,6 @@
 module.exports = {
-  outputDir: '../static'
+  outputDir: '../static',
+  devServer: {
+    proxy: 'http://127.0.0.1:8000/',
+  }
 }

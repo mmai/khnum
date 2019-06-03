@@ -14,5 +14,7 @@ coverage:
 	cargo tarpaulin -v
 run:
 	cargo watch -x run
+frontrun:
+	cd front && yarn run serve
 doc:
 	cargo doc --open

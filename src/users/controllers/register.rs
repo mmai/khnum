@@ -151,6 +151,8 @@ mod tests {
     use actix_http_test::TestServer;
     use dotenv::dotenv;
     use std::time::Duration;
+    use futures::future::Future;
+    use super::SendmailResult;
 
     #[test]
     fn test() {
@@ -171,16 +173,16 @@ mod tests {
             login: String::from("login"),
             password: String::from("pass")
         };
+
         let req = srv.post("/register")
             .timeout(Duration::new(15, 0))
             .header( http::header::CONTENT_TYPE, http::header::HeaderValue::from_static("application/json"),);
 
-        let response = srv.block_on(req.send_json(&user)).unwrap();
-        println!("response : {:?}", response);
+        let mut response = srv.block_on(req.send_json(&user)).unwrap();
         assert!(response.status().is_success());
 
-        //     let result: users::models::User = actix_web::test::read_response_json(&mut app, req);
-        //     assert_eq!(result.login, "login");
+        let res: SendmailResult = response.json().wait().expect("Could not parse");
+        assert!(res.result);
     }
 
 }

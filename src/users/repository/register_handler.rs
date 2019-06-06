@@ -1,68 +1,39 @@
-use actix::{Handler, Message};
+use actix_web::web;
 use chrono::{Local, NaiveDateTime};
 use diesel::prelude::*;
 use uuid::Uuid;
 
-use crate::wiring::DbExecutor;
+use crate::wiring::DbPool;
 use crate::errors::ServiceError;
 
-use crate::schema::users::dsl::*;
+use crate::schema::users::dsl;
 use crate::users::models::{SlimUser, User, NewUser};
 
-// to be used to send data via the Actix actor system
-#[derive(Debug)]
-pub struct RegisterUser {
-    pub email: String,
-    pub login: String,
-    pub password: String,
+pub fn register_user(pool: web::Data<DbPool>, email: String, login: String, password: String) -> Result<(SlimUser, NaiveDateTime), ServiceError> {
+    let conn = &pool.get().unwrap();
+    let user = NewUser::with_details(login, email, password);
+    #[cfg(not(test))]
+    let inserted_user: User = diesel::insert_into(dsl::users).values(&user).get_result(conn)?;
+    #[cfg(test)]
+    diesel::insert_into(dsl::users).values(&user).execute(conn)?;
+    #[cfg(test)]
+    let inserted_user: User = dsl::users.order(dsl::id.desc()).first(conn)?;
+
+    let expire_date = (&inserted_user).expires_at.unwrap();
+    return Ok((inserted_user.into(), expire_date));
 }
 
-impl Message for RegisterUser {
-    type Result = Result<(SlimUser, NaiveDateTime), ServiceError>;
-}
+pub fn validate_user(pool: web::Data<DbPool>, login: String) -> Result<(), ServiceError> {
+    let conn = pool.get().unwrap();
+    #[cfg(test)]
+    diesel::update(dsl::users.filter(dsl::login.eq(login)))
+        .set(dsl::active.eq(true))
+        .execute(&conn)?;
 
-impl Handler<RegisterUser> for DbExecutor {
-    type Result = Result<(SlimUser, NaiveDateTime), ServiceError>;
-    fn handle(&mut self, msg: RegisterUser, _: &mut Self::Context) -> Self::Result {
-        let conn = &self.0.get().unwrap();
+    #[cfg(not(test))]
+    let updated_row: Result<User, diesel::result::Error> = diesel::update(dsl::users.filter(dsl::login.eq(login)))
+        .set(dsl::active.eq(true))
+        .get_result(&conn);
 
-        let user = NewUser::with_details(msg.login, msg.email, msg.password);
-        #[cfg(not(test))]
-        let inserted_user: User = diesel::insert_into(users).values(&user).get_result(conn)?;
-        #[cfg(test)]
-        diesel::insert_into(users).values(&user).execute(conn)?;
-        #[cfg(test)]
-        let inserted_user: User = users.order(id.desc()).first(conn)?;
-
-        let expire_date = (&inserted_user).expires_at.unwrap();
-        return Ok((inserted_user.into(), expire_date));
-    }
-}
-
-#[derive(Debug)]
-pub struct ValidateUser {
-    pub login: String,
-}
-
-impl Message for ValidateUser {
-    type Result = Result<(), ServiceError>;
-}
-
-impl Handler<ValidateUser> for DbExecutor {
-    type Result = Result<(), ServiceError>;
-    fn handle(&mut self, msg: ValidateUser, _: &mut Self::Context) -> Self::Result {
-        let conn = &self.0.get().unwrap();
-
-        #[cfg(test)]
-        diesel::update(users.filter(login.eq(msg.login)))
-            .set(active.eq(true))
-            .execute(conn)?;
-
-        #[cfg(not(test))]
-        let updated_row: Result<User, diesel::result::Error> = diesel::update(users.filter(login.eq(msg.login)))
-            .set(active.eq(true))
-            .get_result(conn);
-
-        return Ok(());
-    }
+    return Ok(());
 }

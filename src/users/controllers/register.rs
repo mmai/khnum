@@ -12,9 +12,9 @@ use lettre::file::FileTransport;
 use lettre::smtp::authentication::{Credentials, Mechanism};
 use lettre::sendmail::SendmailTransport;
 
-use crate::wiring::DbExecutor;
+use crate::wiring::DbPool;
 
-use crate::users::repository::register_handler::{RegisterUser, ValidateUser};
+use crate::users::repository::register_handler;
 use crate::users::models::{SlimUser, User};
 use crate::users::utils::hash_password;
 
@@ -30,18 +30,12 @@ pub struct UserData {
 
 pub fn register(
     user_data: web::Json<UserData>,
-    db: web::Data<Addr<DbExecutor>>,
+    db: web::Data<DbPool>,
 ) -> impl Future<Item = HttpResponse, Error = Error> {
     let user_data = user_data.into_inner();
     let hashed = hash_password(&user_data.password).expect("Error hashing password");
-    let register_user = RegisterUser {
-        email: user_data.email,
-        login: user_data.login,
-        password: hashed,
-    };
-    db.send(register_user)
-        .from_err()
-        .and_then(|db_response| match db_response {
+    web::block( move || register_handler::register_user(db, user_data.email, user_data.login, hashed))
+        .then(|res| { match res {
             Ok((user, expires_at)) => {
                 let res = send_confirmation(&user, &expires_at);
                 Ok(HttpResponse::Ok().json(res))
@@ -50,6 +44,7 @@ pub fn register(
                 println!("Error when registering user : {}", err);
                 Err(err.into())
             }
+        }
         })
 }
 
@@ -125,7 +120,7 @@ struct ValidateResult {
 }
 
 // ---------------- Validate action ------------
-pub fn validate( data: web::Path<(String, String)>, db: web::Data<Addr<DbExecutor>>,) 
+pub fn validate( data: web::Path<(String, String)>, db: web::Data<DbPool>,) 
     // -> impl Future<Item = HttpResponse, Error = Error> {
     -> Box<Future<Item = HttpResponse, Error = Error>> {
     let hashlink = &data.0;
@@ -135,12 +130,14 @@ pub fn validate( data: web::Path<(String, String)>, db: web::Data<Addr<DbExecuto
     if !is_valid {
         return Box::new(result(Ok(HttpResponse::Ok().json(ValidateResult { result: false, message: String::from("Incorrect link") }))));
     }
-    Box::new(db.send(ValidateUser { login: login })
-        .from_err()
-        .and_then(|db_response| match db_response {
+
+    Box::new(
+        web::block( move || register_handler::validate_user(db, login))
+        .then(|res| { match res {
             Ok(_user) => { Ok(HttpResponse::Ok().json(ValidateResult { result: true, message: String::from("User activated") })) }
             Err(_err) => { Ok(HttpResponse::Ok().json(ValidateResult { result: false, message: String::from("User not found") })) }
-        }))
+        }
+    }))
 }
 
 #[cfg(test)]

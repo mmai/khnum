@@ -1,48 +1,35 @@
 use actix::{Handler, Message};
-use actix_web::{dev::Payload, Error, HttpRequest};
+use actix_web::{web, dev::Payload, Error, HttpRequest};
 use actix_web::{middleware::identity::Identity, FromRequest};
 use bcrypt::verify;
 use diesel::prelude::*;
 
-use crate::wiring::DbExecutor;
+use crate::wiring::DbPool;
 
 use crate::errors::ServiceError;
 use crate::users::models::{SlimUser, User};
 use crate::users::utils::decode_token;
 use crate::wiring::MyConnection;
 
-#[derive(Debug, Deserialize)]
-pub struct AuthData {
-    pub email: String,
-    pub password: String,
-}
+pub fn auth(pool: web::Data<DbPool>, email: String, password: String) -> Result<SlimUser, ServiceError> {
+    use crate::schema::users::dsl::{email, users};
+    let conn: &MyConnection = &pool.get().unwrap();
 
-impl Message for AuthData {
-    type Result = Result<SlimUser, ServiceError>;
-}
+    let mut items = users.filter(email.eq(&email)).load::<User>(conn)?;
 
-impl Handler<AuthData> for DbExecutor {
-    type Result = Result<SlimUser, ServiceError>;
-    fn handle(&mut self, msg: AuthData, _: &mut Self::Context) -> Self::Result {
-        use crate::schema::users::dsl::{email, users};
-        let conn: &MyConnection = &self.0.get().unwrap();
-
-        let mut items = users.filter(email.eq(&msg.email)).load::<User>(conn)?;
-
-        if let Some(user) = items.pop() {
-            match verify(&msg.password, &user.password) {
-                Ok(matching) => {
-                    if matching {
-                        return Ok(user.into());
-                    }
+    if let Some(user) = items.pop() {
+        match verify(&password, &user.password) {
+            Ok(matching) => {
+                if matching {
+                    return Ok(user.into());
                 }
-                Err(_) => (),
             }
+            Err(_) => (),
         }
-        Err(ServiceError::BadRequest(
-            "Username and Password don't match".into(),
-        ))
     }
+    Err(ServiceError::BadRequest(
+            "Username and Password don't match".into(),
+            ))
 }
 
 // we need the same data

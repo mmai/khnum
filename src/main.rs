@@ -25,16 +25,15 @@ mod errors;
 mod schema;
 mod users;
 
-use crate::wiring::DbExecutor;
+use crate::wiring::DbPool;
 
 fn main() -> std::io::Result<()> {
     dotenv().ok();
     std::env::set_var( "RUST_LOG", "activue=debug,actix_web=info,actix_server=info",);
     std::env::set_var("RUST_BACKTRACE", "1");//XXX works only for panic! macro
     env_logger::init();
-    let sys = actix_rt::System::new("activue");
     let db_url = dotenv::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let address: Addr<DbExecutor> = wiring::db_init(db_url); // must be after System::new
+    let pool = wiring::db_init(db_url); // must be after System::new
 
     HttpServer::new(move || {
         // secret is a random minimum 32 bytes long base 64 string
@@ -42,7 +41,7 @@ fn main() -> std::io::Result<()> {
         let domain: String = dotenv::var("DOMAIN").unwrap_or_else(|_| "localhost".to_string());
 
         App::new()
-            .data(address.clone())
+            .data(pool.clone())
             .wrap(Logger::default())
             .wrap(IdentityService::new(
                 CookieIdentityPolicy::new(secret.as_bytes())
@@ -70,7 +69,5 @@ fn main() -> std::io::Result<()> {
             .service(fs::Files::new("/", "./static/").index_file("index.html"))
     })
     .bind("127.0.0.1:8000")?
-    .start();
-
-    sys.run()
+    .run()
 }

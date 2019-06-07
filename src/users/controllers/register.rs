@@ -167,18 +167,24 @@ pub fn validate( data: web::Path<(String, String)>, db: web::Data<DbPool>,)
     let hashlink = &data.0;
     let login = data.1.clone();
     let local_link = make_confirmation_link(&login);
-    let is_valid = verify(local_link, hashlink).expect("Error using bcrypt");
-    if !is_valid {
-        return Box::new(result(Ok(HttpResponse::Ok().json(ValidateResult { result: false, message: String::from("Incorrect link") }))));
+    let validate_result = verify(local_link, hashlink)
+        .map_err(|err|
+            CommandResult { success: false, error: Some(String::from("Invalid hash link")) }
+        )
+        .map(|is_valid| {
+            if !is_valid {
+                return CommandResult { success: false, error: Some(String::from("Incorrect link")) };
+            }
+            match register_handler::validate_user(db, login) {
+                Ok(_user) => CommandResult { success: true, error: None },
+                Err(_err) => CommandResult { success: false, error: Some(String::from("User not found")) }
+            }
+        });
+    println!("{:#?}", validate_result);
+    match validate_result {
+        Err(res) => Box::new(result(Ok(HttpResponse::Ok().json(res)))),
+        Ok(res) => Box::new(result(Ok(HttpResponse::Ok().json(res))))
     }
-
-    Box::new(
-        web::block( move || register_handler::validate_user(db, login))
-        .then(|res| { match res {
-            Ok(_user) => { Ok(HttpResponse::Ok().json(ValidateResult { result: true, message: String::from("User activated") })) }
-            Err(_err) => { Ok(HttpResponse::Ok().json(ValidateResult { result: false, message: String::from("User not found") })) }
-        }
-    }))
 }
 
 #[cfg(test)]
@@ -187,6 +193,7 @@ mod tests {
     use actix_web::{web, test, http, App};
     use actix_http::HttpService;
     use actix_http_test::TestServer;
+    use chrono::{NaiveDate, NaiveDateTime};
     use dotenv::dotenv;
     use std::time::Duration;
     use futures::future::Future;
@@ -263,6 +270,62 @@ mod tests {
         let result: CommandResult = response.json().wait().expect("Could not parse json"); 
         assert!(!result.success);
         assert_eq!(Some(String::from("Username already taken")), result.error);
+    }
+
+    #[test]
+    fn test_validate() {
+        dotenv().ok();
+        let mut srv = TestServer::new( || {
+            let pool = crate::wiring::test_conn_init();
+            //Insert test data 
+            let conn = &pool.get().unwrap();
+            let user = NewUser {
+                login: String::from("login"),
+                email: String::from("email"),
+                password: String::from("passwd"),
+                created_at: NaiveDate::from_ymd(2019, 10, 10).and_hms(0,0,0),
+                active: false,
+                expires_at: Some(NaiveDate::from_ymd(2019, 10, 11).and_hms(0,0,0)),
+            };
+            diesel::insert_into(dsl::users).values(&user)
+                .execute(conn).expect("Error populating test database");
+
+            HttpService::new(
+                App::new().data(pool.clone()).service(
+
+             web::resource("/register/{hashlink}/{login}").route(
+                 web::get().to_async(users::controllers::register::validate)
+                    )
+                )
+            )
+        });
+
+        // Good link
+        let login = "login";
+        let link = super::make_confirmation_link(login);
+        let hashlink = super::hash_password(&link).expect("Error hashing link");
+        let req = srv.get(format!("/register/{}/{}", hashlink, login))
+            .timeout(Duration::new(15, 0))
+            .header( http::header::CONTENT_TYPE, http::header::HeaderValue::from_static("application/json"),);
+
+        let mut response = srv.block_on(req.send()).unwrap();
+        println!("response : {:#?}", response);
+        assert!(response.status().is_success());
+        let result: CommandResult = response.json().wait().expect("Could not parse json"); 
+        assert!(result.success);
+
+        // Bad link
+        println!("testing bad link");
+        let login = "looogin";
+        let req = srv.get(format!("/register/{}/{}", hashlink, login))
+            .timeout(Duration::new(15, 0))
+            .header( http::header::CONTENT_TYPE, http::header::HeaderValue::from_static("application/json"),);
+
+        let mut response2 = srv.block_on(req.send()).unwrap();
+        assert!(response2.status().is_success());
+        let result: CommandResult = response2.json().wait().expect("Could not parse json"); 
+        assert!(!result.success);
+        assert_eq!(Some(String::from("Incorrect link")), result.error);
     }
 
 }

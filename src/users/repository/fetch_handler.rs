@@ -14,6 +14,12 @@ use crate::wiring::MyConnection;
 pub fn fetch(pool: web::Data<DbPool>, email: &String, login: &String) -> Result<Vec<SlimUser>, ServiceError> {
     use crate::schema::users::dsl;
     let conn: &MyConnection = &pool.get().unwrap();
-    let items = dsl::users.filter(dsl::email.eq(email).or(dsl::login.eq(login))).load::<User>(conn)?;
+    let items = dsl::users.filter(
+        dsl::active.eq(true)
+        .and(
+            dsl::email.eq(email)
+            .or( dsl::login.eq(login))
+        )
+    ).load::<User>(conn)?;
     return Ok(items.into_iter().map(|item| item.into()).collect());
 }

@@ -160,9 +160,6 @@ pub fn validate( data: web::Path<(String, String)>, db: web::Data<DbPool>,)
     // -> impl Future<Item = HttpResponse, Error = Error> {
     -> Box<Future<Item = HttpResponse, Error = Error>> {
 
-    // Verify expiration date
-    // TODO
-    
     //Verify link
     let login = data.1.clone();
     let hashlink = from_url(&data.0);
@@ -279,15 +276,21 @@ mod tests {
             let pool = crate::wiring::test_conn_init();
             //Insert test data 
             let conn = &pool.get().unwrap();
-            let user = NewUser {
-                login: String::from("login"),
-                email: String::from("email"),
+            let user = NewUser::with_details(String::from("login"), String::from("email@toto.fr"), String::from("password"));
+            let user_expired = NewUser {
+                login: String::from("login0"),
+                email: String::from("email0"),
                 password: String::from("passwd"),
                 created_at: NaiveDate::from_ymd(2019, 10, 10).and_hms(0,0,0),
                 active: false,
                 expires_at: Some(NaiveDate::from_ymd(2019, 10, 11).and_hms(0,0,0)),
             };
+            // Batch don't work with Sqlite 
+            // diesel::insert_into(dsl::users).values(&vec![user, user_expired])
+                // .execute(conn).expect("Error populating test database");
             diesel::insert_into(dsl::users).values(&user)
+                .execute(conn).expect("Error populating test database");
+            diesel::insert_into(dsl::users).values(&user_expired)
                 .execute(conn).expect("Error populating test database");
 
             HttpService::new(
@@ -304,7 +307,6 @@ mod tests {
         let login = "login";
         let link = super::make_confirmation_link(login);
         let hashlink = super::hash_for_url(&link).expect("Error hashing link");
-        println!("hashlink : {}", hashlink);
         let req = srv.get(format!("/register/{}/{}", hashlink, login))
             .timeout(Duration::new(15, 0))
             .header( http::header::CONTENT_TYPE, http::header::HeaderValue::from_static("application/json"),);
@@ -326,6 +328,21 @@ mod tests {
         let result: CommandResult = response2.json().wait().expect("Could not parse json"); 
         assert!(!result.success);
         assert_eq!(Some(String::from("Incorrect link")), result.error);
+
+        // Link validity expired
+        let login = "login0";
+        let link = super::make_confirmation_link(login);
+        let hashlink = super::hash_for_url(&link).expect("Error hashing link");
+        let req = srv.get(format!("/register/{}/{}", hashlink, login))
+            .timeout(Duration::new(15, 0))
+            .header( http::header::CONTENT_TYPE, http::header::HeaderValue::from_static("application/json"),);
+
+        let mut response = srv.block_on(req.send()).unwrap();
+        // println!("response : {:#?}", response);
+        assert!(response.status().is_success());
+        let result: CommandResult = response.json().wait().expect("Could not parse json"); 
+        assert!(!result.success);
+        assert_eq!(Some(String::from("Link validity expired")), result.error);
     }
 
 }

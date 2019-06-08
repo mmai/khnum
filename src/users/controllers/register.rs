@@ -16,7 +16,7 @@ use crate::wiring::DbPool;
 
 use crate::users::repository::{register_handler, fetch_handler};
 use crate::users::models::{SlimUser, User};
-use crate::users::utils::hash_password;
+use crate::users::utils::{hash_for_url, from_url};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CommandResult {
@@ -45,7 +45,7 @@ pub fn register(
             if !cde_res.success {
                 result(Ok(HttpResponse::Ok().json(cde_res)))
             } else {
-                let hashed = hash_password(&user_data.password).expect("Error hashing password");
+                let hashed = hash_for_url(&user_data.password).expect("Error hashing password");
                 // web::block( || register_handler::register_user(pool, user_data.email, user_data.login, hashed))
                     // .then(|res| { match res {
                 let res = register_handler::register_user(pool, user_data.email, user_data.login, hashed);
@@ -100,7 +100,7 @@ fn send_confirmation(user: &SlimUser, expires_at: &NaiveDateTime) -> CommandResu
     let base_url = dotenv::var("BASE_URL").unwrap_or_else(|_| "localhost".to_string());
     let recipient = user.email.as_str();
     let link = make_confirmation_link(&user.login);
-    let hashlink = hash_password(&link).expect("Error hashing link");
+    let hashlink = hash_for_url(&link).expect("Error hashing link");
     let url = format!("{}/register/{}/{}", base_url, hashlink, user.login);
     let email_body = format!(
         "Please click on the link below to complete registration. <br/>
@@ -164,11 +164,11 @@ pub fn validate( data: web::Path<(String, String)>, db: web::Data<DbPool>,)
     // TODO
     
     //Verify link
-    let hashlink = &data.0;
     let login = data.1.clone();
+    let hashlink = from_url(&data.0);
     let local_link = make_confirmation_link(&login);
-    let validate_result = verify(local_link, hashlink)
-        .map_err(|err|
+    let validate_result = verify(local_link, &hashlink[..])
+        .map_err(|_err|
             CommandResult { success: false, error: Some(String::from("Invalid hash link")) }
         )
         .map(|is_valid| {
@@ -180,7 +180,7 @@ pub fn validate( data: web::Path<(String, String)>, db: web::Data<DbPool>,)
                 Err(_err) => CommandResult { success: false, error: Some(String::from("User not found")) }
             }
         });
-    println!("{:#?}", validate_result);
+    // println!("{:#?}", validate_result);
     match validate_result {
         Err(res) => Box::new(result(Ok(HttpResponse::Ok().json(res)))),
         Ok(res) => Box::new(result(Ok(HttpResponse::Ok().json(res))))
@@ -303,19 +303,19 @@ mod tests {
         // Good link
         let login = "login";
         let link = super::make_confirmation_link(login);
-        let hashlink = super::hash_password(&link).expect("Error hashing link");
+        let hashlink = super::hash_for_url(&link).expect("Error hashing link");
+        println!("hashlink : {}", hashlink);
         let req = srv.get(format!("/register/{}/{}", hashlink, login))
             .timeout(Duration::new(15, 0))
             .header( http::header::CONTENT_TYPE, http::header::HeaderValue::from_static("application/json"),);
 
         let mut response = srv.block_on(req.send()).unwrap();
-        println!("response : {:#?}", response);
+        // println!("response : {:#?}", response);
         assert!(response.status().is_success());
         let result: CommandResult = response.json().wait().expect("Could not parse json"); 
         assert!(result.success);
 
         // Bad link
-        println!("testing bad link");
         let login = "looogin";
         let req = srv.get(format!("/register/{}/{}", hashlink, login))
             .timeout(Duration::new(15, 0))

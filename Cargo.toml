@@ -30,6 +30,7 @@ num_cpus = "1.10.0"
 url = "1.7.2"
 diesel_migrations = "1.4.0"
 actix-http = "0.2.3"
+percent-encoding = "1.0.1"
 
 [features]
 default = ["postgres"]

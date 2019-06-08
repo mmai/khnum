@@ -1,6 +1,7 @@
 use bcrypt::{hash, DEFAULT_COST};
 use chrono::{Duration, Local};
 use jsonwebtoken::{decode, encode, Header, Validation};
+use url::percent_encoding::{utf8_percent_encode, percent_decode, PATH_SEGMENT_ENCODE_SET};
 
 use crate::errors::ServiceError;
 use crate::users::models::SlimUser;
@@ -12,6 +13,15 @@ pub fn hash_password(plain: &str) -> Result<String, ServiceError> {
         _ => DEFAULT_COST,
     };
     hash(plain, hashing_cost).map_err(|_| ServiceError::InternalServerError)
+}
+
+pub fn hash_for_url(plain: &str) -> Result<String, ServiceError> {
+    hash_password(plain)
+        .map(|hash| utf8_percent_encode(&hash, PATH_SEGMENT_ENCODE_SET).to_string())
+}
+
+pub fn from_url(data: &str) -> String {
+    percent_decode(data.as_bytes()).decode_utf8().unwrap().to_string()
 }
 
 #[derive(Debug, Serialize, Deserialize)]

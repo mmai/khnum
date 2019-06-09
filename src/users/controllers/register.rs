@@ -16,7 +16,7 @@ use crate::wiring::DbPool;
 
 use crate::users::repository::{register_handler, fetch_handler};
 use crate::users::models::{SlimUser, User};
-use crate::users::utils::{hash_for_url, from_url};
+use crate::users::utils::{hash_password, to_url, from_url};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CommandResult {
@@ -53,6 +53,28 @@ pub fn register(
         }
     }
 }
+
+pub fn rregister(
+    form_data: web::Form<ValidateForm>,
+    pool: web::Data<DbPool>,
+) -> impl Future<Item = HttpResponse, Error = Error> {
+    let form_data = form_data.into_inner();
+    let res = check_existence(pool.clone(), session.email, &form_data.username);
+    match res {
+        Ok(cde_res) => {
+            if !cde_res.success {
+                result(Ok(HttpResponse::Ok().json(cde_res)))
+            } else {
+                let expires_at = Local::now().naive_local() + Duration::hours(24);
+                result(Ok(HttpResponse::Ok().json(res)))
+            }
+        }
+        Err(err) => {
+           result(Err(err.into()))
+        }
+    }
+}
+
 
 fn check_email_available(pool: web::Data<DbPool>, email: &String) -> Result<CommandResult, Error> {
     let res = fetch_handler::email_exists(pool, email);
@@ -91,22 +113,24 @@ fn check_existence(pool: web::Data<DbPool>, email: &String, login: &String) -> R
     }
 }
 
-fn make_confirmation_link(msg: &str) -> String {
+fn make_confirmation_data(msg: &str) -> String {
     let key = dotenv::var("SECRET_KEY").unwrap();
     format!("{}{}", msg, key)
 }
 
 fn send_confirmation(email: String, expires_at: NaiveDateTime) -> CommandResult {
     let validate_params = format!("{}{}", email, expires_at.timestamp());
-    println!("{}{}", email, expires_at.timestamp());
+    // println!("{}{}", email, expires_at.timestamp());
 
     let sending_email = std::env::var("SENDING_EMAIL_ADDRESS")
         .expect("SENDING_EMAIL_ADDRESS must be set");
     let base_url = dotenv::var("BASE_URL").unwrap_or_else(|_| "localhost".to_string());
     let recipient = &email[..];
-    let link = make_confirmation_link(&validate_params);
-    let hashlink = hash_for_url(&link).expect("Error hashing link");
-    let url = format!("{}/register/{}/{}/{}", base_url, hashlink, email, expires_at);
+    let link = make_confirmation_data(&validate_params);
+    let confirmation_hash = hash_password(&link)
+        .map(|hash| to_url(&hash))
+        .expect("Error hashing link");
+    let url = format!("{}/register/{}/{}/{}", base_url, confirmation_hash, to_url(&email), expires_at.timestamp());
     let email_body = format!(
         "Please click on the link below to complete registration. <br/>
          <a href=\"{url}\">{url}</a> <br>
@@ -116,7 +140,7 @@ fn send_confirmation(email: String, expires_at: NaiveDateTime) -> CommandResult 
             .format("%I:%M %p %A, %-d %B, %C%y")
             .to_string()
     );
-    println!("{}", email_body);
+    // println!("{}", email_body);
     // println!("{}", recipient);
 
     let email = Email::builder()
@@ -155,20 +179,22 @@ fn send_confirmation(email: String, expires_at: NaiveDateTime) -> CommandResult 
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct ValidateResult {
-    message: String,
-    result: bool
+pub struct ValidateForm {
+    username: String,
+    password: String,
 }
 
 // ---------------- Validate action ------------
-pub fn validate( data: web::Path<(String, String)>, db: web::Data<DbPool>,) 
+pub fn validate( data: web::Path<(String, String, String)>, db: web::Data<DbPool>,) 
     // -> impl Future<Item = HttpResponse, Error = Error> {
     -> Box<Future<Item = HttpResponse, Error = Error>> {
 
     //Verify link
-    let login = data.1.clone();
     let hashlink = from_url(&data.0);
-    let local_link = make_confirmation_link(&login);
+    let email = from_url(&data.1);
+    let expires_at = data.2.clone();
+    let validate_params = format!("{}{}", email, expires_at);
+    let local_link = make_confirmation_data(&validate_params);
     let validate_result = verify(local_link, &hashlink[..])
         .map_err(|_err|
             CommandResult { success: false, error: Some(String::from("Invalid hash link")) }
@@ -177,7 +203,7 @@ pub fn validate( data: web::Path<(String, String)>, db: web::Data<DbPool>,)
             if !is_valid {
                 return CommandResult { success: false, error: Some(String::from("Incorrect link")) };
             }
-            match register_handler::validate_user(db, login) {
+            match register_handler::validate_user(db, email) {
                 Ok(_user) => CommandResult { success: true, error: None },
                 Err(_err) => CommandResult { success: false, error: Some(String::from("User not found")) }
             }
@@ -260,50 +286,54 @@ mod tests {
             //Insert test data 
             let conn = &pool.get().unwrap();
             let user = NewUser::with_details(String::from("login"), String::from("email@toto.fr"), String::from("password"));
-            let user_expired = NewUser {
-                login: String::from("login0"),
-                email: String::from("email0"),
-                password: String::from("passwd"),
-                created_at: NaiveDate::from_ymd(2019, 10, 10).and_hms(0,0,0),
-                active: false,
-            };
             // Batch don't work with Sqlite 
             // diesel::insert_into(dsl::users).values(&vec![user, user_expired])
                 // .execute(conn).expect("Error populating test database");
             diesel::insert_into(dsl::users).values(&user)
                 .execute(conn).expect("Error populating test database");
-            diesel::insert_into(dsl::users).values(&user_expired)
-                .execute(conn).expect("Error populating test database");
 
             HttpService::new(
-                App::new().data(pool.clone()).service(
-
-             web::resource("/register/{hashlink}/{login}").route(
-                 web::get().to_async(users::controllers::register::validate)
-                    )
-                )
+                App::new().data(pool.clone())
+                .service( web::resource("/register/{hashlink}/{login}/{expires_at}").route(
+                    web::get().to_async(users::controllers::register::validate)
+                ))
+                .service( web::resource("/validate").route( 
+                    web::post().to_async(users::controllers::register::rregister),
+                ))
             )
         });
 
         // Good link
-        let login = "login";
-        let link = super::make_confirmation_link(login);
-        let hashlink = super::hash_for_url(&link).expect("Error hashing link");
-        let req = srv.get(format!("/register/{}/{}", hashlink, login))
-            .timeout(Duration::new(15, 0))
-            .header( http::header::CONTENT_TYPE, http::header::HeaderValue::from_static("application/json"),);
-
+        let email = "email@test.fr";
+        let expires_at = super::Local::now().naive_local() + super::Duration::hours(24);
+        let validate_params = format!("{}{}", email, expires_at.timestamp());
+        let link = super::make_confirmation_data(&validate_params);
+        let confirmation_hash = super::hash_password(&link)
+            .map(|hash| super::to_url(&hash))
+            .expect("Error hashing link");
+        let req = srv.get(format!("/register/{}/{}/{}", confirmation_hash, email, expires_at.timestamp()))
+            .timeout(Duration::new(15, 0));
+            // .header( http::header::CONTENT_TYPE, http::header::HeaderValue::from_static("application/json"),);
         let mut response = srv.block_on(req.send()).unwrap();
-        // println!("response : {:#?}", response);
+        assert!(response.status().is_success());
+        let result: CommandResult = response.json().wait().expect("Could not parse json"); 
+        println!("err: {}", result.error.unwrap_or(String::from("none")));
+        assert!(result.success);
+
+        let req = srv.get("/validate/")
+            .timeout(Duration::new(15, 0));
+            // .header( http::header::CONTENT_TYPE, http::header::HeaderValue::from_static("application/json"),);
+        let form = super::ValidateForm { username:  String::from("username"), password: String::from("passwd") };
+        let mut response = srv.block_on(req.send_form(&form)).unwrap();
         assert!(response.status().is_success());
         let result: CommandResult = response.json().wait().expect("Could not parse json"); 
         assert!(result.success);
 
         // Bad link
-        let login = "looogin";
-        let req = srv.get(format!("/register/{}/{}", hashlink, login))
-            .timeout(Duration::new(15, 0))
-            .header( http::header::CONTENT_TYPE, http::header::HeaderValue::from_static("application/json"),);
+        let emailbad = "emailo@test.fr";
+        let req = srv.get(format!("/register/{}/{}/{}", confirmation_hash, emailbad, expires_at))
+            .timeout(Duration::new(15, 0));
+            // .header( http::header::CONTENT_TYPE, http::header::HeaderValue::from_static("application/json"),);
 
         let mut response2 = srv.block_on(req.send()).unwrap();
         assert!(response2.status().is_success());
@@ -312,12 +342,17 @@ mod tests {
         assert_eq!(Some(String::from("Incorrect link")), result.error);
 
         // Link validity expired
-        let login = "login0";
-        let link = super::make_confirmation_link(login);
-        let hashlink = super::hash_for_url(&link).expect("Error hashing link");
-        let req = srv.get(format!("/register/{}/{}", hashlink, login))
-            .timeout(Duration::new(15, 0))
-            .header( http::header::CONTENT_TYPE, http::header::HeaderValue::from_static("application/json"),);
+        let expires_at = super::Local::now().naive_local() - super::Duration::hours(24);
+        let validate_params = format!("{}{}", email, expires_at.timestamp());
+        
+
+        let link = super::make_confirmation_data(&validate_params);
+        let confirmation_hash = super::hash_password(&link)
+            .map(|hash| super::to_url(&hash))
+            .expect("Error hashing link");
+        let req = srv.get(format!("/register/{}/{}/{}", confirmation_hash, email, expires_at))
+            .timeout(Duration::new(15, 0));
+            // .header( http::header::CONTENT_TYPE, http::header::HeaderValue::from_static("application/json"),);
 
         let mut response = srv.block_on(req.send()).unwrap();
         // println!("response : {:#?}", response);

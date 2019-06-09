@@ -24,7 +24,6 @@ pub struct NewUser {
     pub password: String,
     pub created_at: NaiveDateTime,
     pub active: bool,
-    pub expires_at: Option<NaiveDateTime>,
 }
 
 impl NewUser {
@@ -35,7 +34,6 @@ impl NewUser {
             password,
             created_at: Local::now().naive_local(),
             active: false,
-            expires_at: Some(Local::now().naive_local() + Duration::hours(24)),
         }
     }
 }

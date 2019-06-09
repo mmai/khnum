@@ -28,42 +28,44 @@ pub struct CommandResult {
 
 // UserData is used to extract data from a post request by the client
 #[derive(Debug, Serialize, Deserialize)]
-pub struct UserData {
-    pub email: String,
-    pub login: String,
-    pub password: String,
+pub struct RegisterForm {
+    email: String
 }
 
 pub fn register(
-    user_data: web::Json<UserData>,
+    form_data: web::Form<RegisterForm>,
     pool: web::Data<DbPool>,
 ) -> impl Future<Item = HttpResponse, Error = Error> {
-    let user_data = user_data.into_inner();
-    let res = check_existence(pool.clone(), &user_data.email, &user_data.login);
+    let form_data = form_data.into_inner();
+    let res = check_email_available(pool.clone(), &form_data.email);
     match res {
         Ok(cde_res) => {
             if !cde_res.success {
                 result(Ok(HttpResponse::Ok().json(cde_res)))
             } else {
-                let hashed = hash_for_url(&user_data.password).expect("Error hashing password");
-                // web::block( || register_handler::register_user(pool, user_data.email, user_data.login, hashed))
-                    // .then(|res| { match res {
-                let res = register_handler::register_user(pool, user_data.email, user_data.login, hashed);
-                result(match res {
-                        Ok((user, expires_at)) => {
-                            let res = send_confirmation(&user, &expires_at);
-                            Ok(HttpResponse::Ok().json(res))
-                        }
-                        Err(err) => {
-                            println!("Error when registering user : {}", err);
-                            Err(err.into())
-                        }
-                    })
-                    // })
+                let expires_at = Local::now().naive_local() + Duration::hours(24);
+                let res = send_confirmation(form_data.email, expires_at);
+                result(Ok(HttpResponse::Ok().json(res)))
             }
         }
         Err(err) => {
            result(Err(err.into()))
+        }
+    }
+}
+
+fn check_email_available(pool: web::Data<DbPool>, email: &String) -> Result<CommandResult, Error> {
+    let res = fetch_handler::email_exists(pool, email);
+    match res {
+        Ok(email_exists) => {
+            if email_exists {
+                return Ok(CommandResult {success: false, error: Some(String::from("Email already taken"))});
+            }
+            Ok(CommandResult {success: true, error: None})
+        }
+        Err(err) => {
+            println!("Error when looking unicity : {}", err);
+            Err(err.into())
         }
     }
 }
@@ -89,19 +91,22 @@ fn check_existence(pool: web::Data<DbPool>, email: &String, login: &String) -> R
     }
 }
 
-fn make_confirmation_link(login: &str) -> String {
+fn make_confirmation_link(msg: &str) -> String {
     let key = dotenv::var("SECRET_KEY").unwrap();
-    format!("{}{}", login, key)
+    format!("{}{}", msg, key)
 }
 
-fn send_confirmation(user: &SlimUser, expires_at: &NaiveDateTime) -> CommandResult {
+fn send_confirmation(email: String, expires_at: NaiveDateTime) -> CommandResult {
+    let validate_params = format!("{}{}", email, expires_at.timestamp());
+    println!("{}{}", email, expires_at.timestamp());
+
     let sending_email = std::env::var("SENDING_EMAIL_ADDRESS")
         .expect("SENDING_EMAIL_ADDRESS must be set");
     let base_url = dotenv::var("BASE_URL").unwrap_or_else(|_| "localhost".to_string());
-    let recipient = user.email.as_str();
-    let link = make_confirmation_link(&user.login);
+    let recipient = &email[..];
+    let link = make_confirmation_link(&validate_params);
     let hashlink = hash_for_url(&link).expect("Error hashing link");
-    let url = format!("{}/register/{}/{}", base_url, hashlink, user.login);
+    let url = format!("{}/register/{}/{}/{}", base_url, hashlink, email, expires_at);
     let email_body = format!(
         "Please click on the link below to complete registration. <br/>
          <a href=\"{url}\">{url}</a> <br>
@@ -111,7 +116,7 @@ fn send_confirmation(user: &SlimUser, expires_at: &NaiveDateTime) -> CommandResu
             .format("%I:%M %p %A, %-d %B, %C%y")
             .to_string()
     );
-    // println!("{}", email_body);
+    println!("{}", email_body);
     // println!("{}", recipient);
 
     let email = Email::builder()
@@ -221,52 +226,30 @@ mod tests {
         });
 
         //==== Test register
-        let user = super::UserData {
-            email: String::from("email2@toto.fr"),
-            login: String::from("login2"),
-            password: String::from("pass2")
-        };
+        let form = super::RegisterForm { email:  String::from("email2@toto.fr") };
 
         let req = srv.post("/register")
-            .timeout(Duration::new(15, 0))
-            .header( http::header::CONTENT_TYPE, http::header::HeaderValue::from_static("application/json"),);
+            .timeout(Duration::new(15, 0));
+            // .header( http::header::CONTENT_TYPE, http::header::HeaderValue::from_static("application/json"),);
 
-        let mut response = srv.block_on(req.send_json(&user)).unwrap();
+        let mut response = srv.block_on(req.send_form(&form)).unwrap();
+        // println!("{:#?}", response);
         assert!(response.status().is_success());
         let result: CommandResult = response.json().wait().expect("Could not parse json"); 
         assert!(result.success);
 
         //======== Test register with already registered email
-        let existing_user = super::UserData {
+        let existing_user = super::RegisterForm {
             email: String::from("email@toto.fr"),
-            login: String::from("login"),
-            password: String::from("pass")
         };
         let req = srv.post("/register")
-            .timeout(Duration::new(15, 0))
-            .header( http::header::CONTENT_TYPE, http::header::HeaderValue::from_static("application/json"),);
+            .timeout(Duration::new(15, 0));
 
-        let mut response = srv.block_on(req.send_json(&existing_user)).unwrap();
+        let mut response = srv.block_on(req.send_form(&existing_user)).unwrap();
         assert!(response.status().is_success());
         let result: CommandResult = response.json().wait().expect("Could not parse json"); 
         assert!(!result.success);
         assert_eq!(Some(String::from("Email already taken")), result.error);
-        
-        //======== Test register with already registered login
-        let existing_user = super::UserData {
-            email: String::from("email3@toto.fr"),
-            login: String::from("login"),
-            password: String::from("pass")
-        };
-        let req = srv.post("/register")
-            .timeout(Duration::new(15, 0))
-            .header( http::header::CONTENT_TYPE, http::header::HeaderValue::from_static("application/json"),);
-
-        let mut response = srv.block_on(req.send_json(&existing_user)).unwrap();
-        assert!(response.status().is_success());
-        let result: CommandResult = response.json().wait().expect("Could not parse json"); 
-        assert!(!result.success);
-        assert_eq!(Some(String::from("Username already taken")), result.error);
     }
 
     #[test]
@@ -283,7 +266,6 @@ mod tests {
                 password: String::from("passwd"),
                 created_at: NaiveDate::from_ymd(2019, 10, 10).and_hms(0,0,0),
                 active: false,
-                expires_at: Some(NaiveDate::from_ymd(2019, 10, 11).and_hms(0,0,0)),
             };
             // Batch don't work with Sqlite 
             // diesel::insert_into(dsl::users).values(&vec![user, user_expired])

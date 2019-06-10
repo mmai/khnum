@@ -9,7 +9,7 @@ use crate::errors::ServiceError;
 use crate::schema::users::dsl;
 use crate::users::models::{SlimUser, User, NewUser};
 
-pub fn register_user(pool: web::Data<DbPool>, email: String, login: String, password: String) -> Result<(SlimUser, NaiveDateTime), ServiceError> {
+pub fn register_user(pool: web::Data<DbPool>, email: String, login: String, password: String) -> Result<SlimUser, ServiceError> {
     let conn = &pool.get().unwrap();
     let user = NewUser::with_details(login, email, password);
     #[cfg(not(test))]
@@ -19,8 +19,8 @@ pub fn register_user(pool: web::Data<DbPool>, email: String, login: String, pass
     #[cfg(test)]
     let inserted_user: User = dsl::users.order(dsl::id.desc()).first(conn)?;
 
-    let expire_date = (&inserted_user).expires_at.unwrap();
-    return Ok((inserted_user.into(), expire_date));
+    // let expire_date = (&inserted_user).expires_at.unwrap();
+    return Ok(inserted_user.into());
 }
 
 pub fn validate_user(pool: web::Data<DbPool>, login: String) -> Result<(), ServiceError> {

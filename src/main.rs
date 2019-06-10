@@ -1,13 +1,10 @@
 #![allow(unused_imports)]
 
-#[macro_use]
-extern crate diesel;
-#[macro_use]
-extern crate serde_derive;
-
+#[macro_use] extern crate diesel;
+#[macro_use] extern crate serde_derive;
+#[macro_use] extern crate lazy_static;
 //For tests
-#[macro_use]
-extern crate diesel_migrations;
+#[macro_use] extern crate diesel_migrations;
 
 use actix::prelude::*;
 use actix_files as fs;
@@ -16,6 +13,7 @@ use actix_web::middleware::{
     Logger,
 };
 use actix_web::{web, App, HttpServer};
+use actix_session::{CookieSession, Session};
 use chrono::Duration;
 use diesel::{r2d2::ConnectionManager};
 use dotenv::dotenv;
@@ -43,14 +41,15 @@ fn main() -> std::io::Result<()> {
         App::new()
             .data(pool.clone())
             .wrap(Logger::default())
-            .wrap(IdentityService::new(
-                CookieIdentityPolicy::new(secret.as_bytes())
-                    .name("auth")
-                    .path("/")
-                    .domain(domain.as_str())
-                    .max_age_time(Duration::days(1))
-                    .secure(false), // this can only be true if you have https
-            ))
+            .wrap(CookieSession::signed(secret.as_bytes()).secure(false))
+            // .wrap(IdentityService::new(
+            //     CookieIdentityPolicy::new(secret.as_bytes())
+            //         .name("auth")
+            //         .path("/")
+            //         .domain(domain.as_str())
+            //         .max_age_time(Duration::days(1))
+            //         .secure(false), // this can only be true if you have https
+            // ))
             .service( web::scope("/api") // everything under '/api/' route
                     .service( web::resource("/auth") // routes for authentication
                             .route(web::post().to_async(users::controllers::auth::login))

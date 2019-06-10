@@ -56,18 +56,27 @@ fn main() -> std::io::Result<()> {
                             .route(web::delete().to(users::controllers::auth::logout))
                             .route(web::get().to_async(users::controllers::auth::get_me)),
                     )
-                    .service( web::resource("/register").route( 
-                            web::post().to_async(users::controllers::register::register),
-                        ),
-                    )
-                    .service( web::resource("/validate").route( 
-                            web::post().to_async(users::controllers::register::rregister),
-                        ),
-                    )
+                    // .service( web::resource("/register").route( 
+                    //         web::post().to_async(users::controllers::register::register),
+                    //     ),
+                    // )
+                    // .service( web::resource("/validate").route( 
+                    //         web::post().to_async(users::controllers::register::register),
+                    //     ),
+                    // )
             )
-            .service( web::resource("/register/{hashlink}/{email}/{expires_at}") // route to validate registration
-                .route(web::get().to_async(users::controllers::register::validate)),
-                )
+            .service( web::scope("/register") // everything under '/api/' route
+                  .service( web::resource("/request").route(
+                      web::get().to_async(users::controllers::register::request)
+                  ))
+                  // route to validate registration
+                  .service( web::resource("/{hashlink}/{email}/{expires_at}").route(
+                          web::get().to_async(users::controllers::register::validate)
+                  ))
+                  .service( web::resource("/validate").route(
+                          web::get().to_async(users::controllers::register::register)
+                  ))
+            )
             // serve static files
             .service(fs::Files::new("/", "./static/").index_file("index.html"))
     })

@@ -25,16 +25,16 @@ pub struct CommandResult {
     error: Option<String>
 }
 
-// ---------------- Register Action------------
+// ---------------- Request Action------------
 
 // UserData is used to extract data from a post request by the client
 #[derive(Debug, Serialize, Deserialize)]
-pub struct RegisterForm {
+pub struct RequestForm {
     email: String
 }
 
-pub fn register(
-    form_data: web::Form<RegisterForm>,
+pub fn request(
+    form_data: web::Form<RequestForm>,
     pool: web::Data<DbPool>,
 ) -> impl Future<Item = HttpResponse, Error = Error> {
     let form_data = form_data.into_inner();
@@ -55,7 +55,7 @@ pub fn register(
     }
 }
 
-pub fn rregister(
+pub fn register(
     session: Session,
     form_data: web::Form<ValidateForm>,
     pool: web::Data<DbPool>,
@@ -282,7 +282,7 @@ mod tests {
     use crate::users::models::{SlimUser, User, NewUser};
 
     #[test]
-    fn test_register() {
+    fn test_request() {
         dotenv().ok();
         let mut srv = TestServer::new( || {
             let pool = crate::wiring::test_conn_init();
@@ -294,17 +294,17 @@ mod tests {
 
             HttpService::new(
                 App::new().data(pool.clone()).service(
-                    web::resource("/register").route(
-                        web::post().to_async(users::controllers::register::register)
+                    web::resource("/register/request").route(
+                        web::post().to_async(users::controllers::register::request)
                     )
                 )
             )
         });
 
-        //==== Test register
-        let form = super::RegisterForm { email:  String::from("email2@toto.fr") };
+        //==== Test request
+        let form = super::RequestForm { email:  String::from("email2@toto.fr") };
 
-        let req = srv.post("/register")
+        let req = srv.post("/register/request")
             .timeout(Duration::new(15, 0));
             // .header( http::header::CONTENT_TYPE, http::header::HeaderValue::from_static("application/json"),);
 
@@ -314,11 +314,11 @@ mod tests {
         let result: CommandResult = response.json().wait().expect("Could not parse json"); 
         assert!(result.success);
 
-        //======== Test register with already registered email
-        let existing_user = super::RegisterForm {
+        //======== Test request with already registered email
+        let existing_user = super::RequestForm {
             email: String::from("email@toto.fr"),
         };
-        let req = srv.post("/register")
+        let req = srv.post("/register/request")
             .timeout(Duration::new(15, 0));
 
         let mut response = srv.block_on(req.send_form(&existing_user)).unwrap();
@@ -372,14 +372,14 @@ mod tests {
             HttpService::new(
                 App::new().data(pool.clone())
                 .wrap(CookieSession::signed(&[0; 32]).secure(false))
-                .service( web::resource("/register").route( // To test insertions 
-                    web::post().to_async(users::controllers::register::register)
+                .service( web::resource("/register/request").route( // To test insertions 
+                    web::post().to_async(users::controllers::register::request)
                 ))
                 .service( web::resource("/register/{hashlink}/{login}/{expires_at}").route(
                     web::get().to_async(users::controllers::register::validate)
                 ))
-                .service( web::resource("/validate").route( 
-                    web::post().to_async(users::controllers::register::rregister),
+                .service( web::resource("/register/validate").route( 
+                    web::post().to_async(users::controllers::register::register),
                 ))
             )
         });
@@ -402,7 +402,7 @@ mod tests {
         // println!("err: {}", result.error.unwrap_or(String::from("none")));
         assert!(result.success);
 
-        let mut req:awc::ClientRequest = srv.post("/validate").timeout(Duration::new(15, 0));
+        let mut req:awc::ClientRequest = srv.post("/register/validate").timeout(Duration::new(15, 0));
         // keep_session(response, &mut req);
         // req = req.cookie(get_session_cookie(response));
         lazy_static! {
@@ -422,8 +422,8 @@ mod tests {
         assert!(result.success);
 
         //Registering with same email should now fail
-        let form = super::RegisterForm { email:  String::from(email) };
-        let req = srv.post("/register").timeout(Duration::new(15, 0));
+        let form = super::RequestForm { email:  String::from(email) };
+        let req = srv.post("/register/request").timeout(Duration::new(15, 0));
         let mut response = srv.block_on(req.send_form(&form)).unwrap();
         // println!("response : {:#?}", response);
         assert!(response.status().is_success());

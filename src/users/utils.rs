@@ -15,9 +15,8 @@ pub fn hash_password(plain: &str) -> Result<String, ServiceError> {
     hash(plain, hashing_cost).map_err(|_| ServiceError::InternalServerError)
 }
 
-pub fn hash_for_url(plain: &str) -> Result<String, ServiceError> {
-    hash_password(plain)
-        .map(|hash| utf8_percent_encode(&hash, PATH_SEGMENT_ENCODE_SET).to_string())
+pub fn to_url(plain: &String) -> String {
+    utf8_percent_encode(plain, PATH_SEGMENT_ENCODE_SET).to_string()
 }
 
 pub fn from_url(data: &str) -> String {

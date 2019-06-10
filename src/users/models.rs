@@ -13,7 +13,6 @@ pub struct User {
     pub password: String,
     pub created_at: NaiveDateTime,
     pub active: bool,
-    pub expires_at: Option<NaiveDateTime>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Insertable)]
@@ -69,7 +68,6 @@ fn slim_from_user() {
         password: "pass".into(),
         created_at: Local::now().naive_local(),
         active: false,
-        expires_at: None,
     };
     let s:SlimUser = u.into();
     assert_eq!(SlimUser { login: "login".into(), email: "email@toto.fr".into() }, s);

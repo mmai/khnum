@@ -25,11 +25,10 @@ Form (username, password) (with session cookie) -> post to
   -> hash password
   -> create user
 
-## Forgotten  password
-TODO
+## Forgotten  password TODO
 
 Form (email) -> post to
-/register/request 
+/user/forgotten 
   -> check email exists
   -> send temporary link 
 
@@ -43,8 +42,7 @@ Form (password) (with session cookie) -> post to
   -> hash password
   -> update user
 
-## Login
-TODO
+## Login TODO
 
 Form (login, password) -> post to
 /login
@@ -56,8 +54,7 @@ protected pages :
   -> check user exists
   -> check user rights
 
-## Logout
-TODO
+## Logout TODO
 
 /logout
  -> invalidate session cookie

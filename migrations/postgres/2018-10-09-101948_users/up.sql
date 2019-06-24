@@ -4,6 +4,5 @@ CREATE TABLE users (
   email VARCHAR(100) NOT NULL UNIQUE,
   login VARCHAR(30) NOT NULL UNIQUE,
   password VARCHAR(64) NOT NULL, --bcrypt hash
-  created_at TIMESTAMP NOT NULL,
-  active BOOLEAN NOT NULL DEFAULT FALSE
+  created_at TIMESTAMP NOT NULL
 );

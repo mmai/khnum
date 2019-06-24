@@ -23,17 +23,17 @@ pub fn register_user(pool: web::Data<DbPool>, email: String, login: String, pass
     return Ok(inserted_user.into());
 }
 
-pub fn validate_user(pool: web::Data<DbPool>, login: String) -> Result<(), ServiceError> {
-    let conn = pool.get().unwrap();
-    #[cfg(test)]
-    diesel::update(dsl::users.filter(dsl::login.eq(login)))
-        .set(dsl::active.eq(true))
-        .execute(&conn)?;
-
-    #[cfg(not(test))]
-    let updated_row: Result<User, diesel::result::Error> = diesel::update(dsl::users.filter(dsl::login.eq(login)))
-        .set(dsl::active.eq(true))
-        .get_result(&conn);
-
-    return Ok(());
-}
+// pub fn validate_user(pool: web::Data<DbPool>, login: String) -> Result<(), ServiceError> {
+//     let conn = pool.get().unwrap();
+//     #[cfg(test)]
+//     diesel::update(dsl::users.filter(dsl::login.eq(login)))
+//         .set(dsl::active.eq(true))
+//         .execute(&conn)?;
+//
+//     #[cfg(not(test))]
+//     let updated_row: Result<User, diesel::result::Error> = diesel::update(dsl::users.filter(dsl::login.eq(login)))
+//         .set(dsl::active.eq(true))
+//         .get_result(&conn);
+//
+//     return Ok(());
+// }

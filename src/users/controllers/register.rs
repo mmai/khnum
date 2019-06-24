@@ -55,6 +55,47 @@ pub fn request(
     }
 }
 
+// ---------------- Validate link action ------------
+pub fn validate_link( 
+    session: Session,
+    data: web::Path<(String, String, String)>, 
+    db: web::Data<DbPool>,) 
+    // -> impl Future<Item = HttpResponse, Error = Error> {
+    -> Box<Future<Item = HttpResponse, Error = Error>> {
+
+    //Verify link
+    let hashlink = from_url(&data.0);
+    let email = from_url(&data.1);
+    let expires_at: i64 = data.2.clone().parse().unwrap();
+    let validate_params = format!("{}{}", email, expires_at);
+    let local_link = make_confirmation_data(&validate_params);
+    let validate_result = verify(local_link, &hashlink[..])
+        .map_err(|_err|
+            CommandResult { success: false, error: Some(String::from("Invalid hash link")) }
+        )
+        .map(|is_valid| {
+            if !is_valid {
+                return CommandResult { success: false, error: Some(String::from("Incorrect link")) };
+            }
+            let now = Local::now().naive_local().timestamp();
+            if expires_at < now {
+                return CommandResult { success: false, error: Some(String::from("Link validity expired")) };
+            }
+            if session.set("email", email ).is_ok() {
+                // println!("email in session : {:#?}", session.get::<String>("email").expect("err while getting email from session"));
+                CommandResult { success: true, error: None }
+            } else {
+                CommandResult { success: false, error: Some(String::from("Could not save email in session")) }
+            }
+        });
+    // println!("{:#?}", validate_result);
+    match validate_result {
+        Err(res) => Box::new(result(Ok(HttpResponse::Ok().json(res)))),
+        Ok(res) => Box::new(result(Ok(HttpResponse::Ok().json(res))))
+    }
+}
+
+// -------- 
 pub fn register(
     session: Session,
     form_data: web::Form<ValidateForm>,
@@ -70,8 +111,6 @@ pub fn register(
         if !cde_res.success {
             Ok(HttpResponse::Ok().json(cde_res))
         } else {
-            let expires_at = Local::now().naive_local() + Duration::hours(24);
-
             let user = register_handler::register_user(pool, email, form_data.username, form_data.password).expect("error when inserting new user");
             Ok( HttpResponse::Ok().json(CommandResult {success: true, error: None}))
         }
@@ -219,51 +258,6 @@ pub struct ValidateForm {
     password: String,
 }
 
-// ---------------- Validate action ------------
-pub fn validate( 
-    session: Session,
-    data: web::Path<(String, String, String)>, 
-    db: web::Data<DbPool>,) 
-    // -> impl Future<Item = HttpResponse, Error = Error> {
-    -> Box<Future<Item = HttpResponse, Error = Error>> {
-
-    //Verify link
-    let hashlink = from_url(&data.0);
-    let email = from_url(&data.1);
-    let expires_at: i64 = data.2.clone().parse().unwrap();
-    let validate_params = format!("{}{}", email, expires_at);
-    let local_link = make_confirmation_data(&validate_params);
-    let validate_result = verify(local_link, &hashlink[..])
-        .map_err(|_err|
-            CommandResult { success: false, error: Some(String::from("Invalid hash link")) }
-        )
-        .map(|is_valid| {
-            if !is_valid {
-                return CommandResult { success: false, error: Some(String::from("Incorrect link")) };
-            }
-            let now = Local::now().naive_local().timestamp();
-            if expires_at < now {
-                return CommandResult { success: false, error: Some(String::from("Link validity expired")) };
-            }
-            match register_handler::validate_user(db, email.clone()) {
-                Ok(_user) => { 
-                    if session.set("email", email ).is_ok() {
-                        // println!("email in session : {:#?}", session.get::<String>("email").expect("err while getting email from session"));
-                        CommandResult { success: true, error: None }
-                    } else {
-                        CommandResult { success: false, error: Some(String::from("Could not save email in session")) }
-                    }
-                },
-                Err(_err) => CommandResult { success: false, error: Some(String::from("User not found")) }
-            }
-        });
-    // println!("{:#?}", validate_result);
-    match validate_result {
-        Err(res) => Box::new(result(Ok(HttpResponse::Ok().json(res)))),
-        Ok(res) => Box::new(result(Ok(HttpResponse::Ok().json(res))))
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::users;
@@ -376,7 +370,7 @@ mod tests {
                     web::post().to_async(users::controllers::register::request)
                 ))
                 .service( web::resource("/register/{hashlink}/{login}/{expires_at}").route(
-                    web::get().to_async(users::controllers::register::validate)
+                    web::get().to_async(users::controllers::register::validate_link)
                 ))
                 .service( web::resource("/register/validate").route( 
                     web::post().to_async(users::controllers::register::register),
@@ -387,12 +381,15 @@ mod tests {
         // ================ Good link
         //
         let email = "email@test.fr";
+
+        // 1. Mock register request
         let expires_at = super::Local::now().naive_local() + super::Duration::hours(24);
         let validate_params = format!("{}{}", email, expires_at.timestamp());
         let link = super::make_confirmation_data(&validate_params);
         let confirmation_hash = super::hash_password(&link)
             .map(|hash| super::to_url(&hash))
             .expect("Error hashing link");
+        // 2. Validate link
         let req = srv.get(format!("/register/{}/{}/{}", confirmation_hash, email, expires_at.timestamp()))
             .timeout(Duration::new(15, 0));
         let mut response = srv.block_on(req.send()).unwrap();
@@ -402,7 +399,8 @@ mod tests {
         // println!("err: {}", result.error.unwrap_or(String::from("none")));
         assert!(result.success);
 
-        let mut req:awc::ClientRequest = srv.post("/register/validate").timeout(Duration::new(15, 0));
+        // 3. Finish registration with user data
+        let mut req: awc::ClientRequest = srv.post("/register/validate").timeout(Duration::new(15, 0));
         // keep_session(response, &mut req);
         // req = req.cookie(get_session_cookie(response));
         lazy_static! {
@@ -422,9 +420,9 @@ mod tests {
         assert!(result.success);
 
         //Registering with same email should now fail
-        let form = super::RequestForm { email:  String::from(email) };
-        let req = srv.post("/register/request").timeout(Duration::new(15, 0));
-        let mut response = srv.block_on(req.send_form(&form)).unwrap();
+        let formRequest = super::RequestForm { email:  String::from(email) };
+        let reqRequest = srv.post("/register/request").timeout(Duration::new(15, 0));
+        let mut response = srv.block_on(reqRequest.send_form(&formRequest)).unwrap();
         // println!("response : {:#?}", response);
         assert!(response.status().is_success());
         let result: CommandResult = response.json().wait().expect("Could not parse json"); 

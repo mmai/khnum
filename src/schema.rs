@@ -5,6 +5,5 @@ table! {
         login -> Varchar,
         password -> Varchar,
         created_at -> Timestamp,
-        active -> Bool,
     }
 }

@@ -71,7 +71,7 @@ fn main() -> std::io::Result<()> {
                   ))
                   // route to validate registration
                   .service( web::resource("/{hashlink}/{email}/{expires_at}").route(
-                          web::get().to_async(users::controllers::register::validate)
+                          web::get().to_async(users::controllers::register::validate_link)
                   ))
                   .service( web::resource("/validate").route(
                           web::get().to_async(users::controllers::register::register)

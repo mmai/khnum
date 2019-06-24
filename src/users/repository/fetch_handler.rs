@@ -29,11 +29,8 @@ pub fn fetch(pool: web::Data<DbPool>, email: &String, login: &String) -> Result<
     use crate::schema::users::dsl;
     let conn: &MyConnection = &pool.get().unwrap();
     let items = dsl::users.filter(
-        dsl::active.eq(true)
-        .and(
-            dsl::email.eq(email)
-            .or( dsl::login.eq(login))
-        )
+        dsl::email.eq(email)
+        .or( dsl::login.eq(login))
     ).load::<User>(conn)?;
     return Ok(items.into_iter().map(|item| item.into()).collect());
 }

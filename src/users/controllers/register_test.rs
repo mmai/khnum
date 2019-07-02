@@ -121,15 +121,8 @@ fn test_validate() {
     let email = "email@test.fr";
 
     // 1. Mock register request
-    let expires_at = super::Local::now().naive_local() + super::Duration::hours(24);
-    let validate_params = format!("{}{}", email, expires_at.timestamp());
-    let link = super::make_confirmation_data(&validate_params);
-    let confirmation_hash = super::hash_password(&link)
-        .map(|hash| super::to_url(&hash))
-        .expect("Error hashing link");
+    let req = registerLinkMock(&mut srv, email, email, false);
     // 2. Validate link
-    let req = srv.get(format!("/register/{}/{}/{}", confirmation_hash, email, expires_at.timestamp()))
-        .timeout(Duration::new(15, 0));
     let mut response = srv.block_on(req.send()).unwrap();
     assert!(response.status().is_success());
     // println!("response : {:#?}", response);
@@ -167,11 +160,12 @@ fn test_validate() {
     assert!(!result.success);
     assert_eq!(Some(String::from("Email already taken")), result.error);
 
+    //Registering with same login should now fail
+
     // ================ Bad link
     //
     let emailbad = "emailo@test.fr";
-    let req = srv.get(format!("/register/{}/{}/{}", confirmation_hash, emailbad, expires_at.timestamp()))
-        .timeout(Duration::new(15, 0));
+    let req = registerLinkMock(&mut srv, email, emailbad, false);
     let mut response2 = srv.block_on(req.send()).unwrap();
     assert!(response2.status().is_success());
     let result: CommandResult = response2.json().wait().expect("Could not parse json"); 
@@ -180,18 +174,25 @@ fn test_validate() {
 
     // ================ Link validity expired
     //
-    let expires_at = super::Local::now().naive_local() - super::Duration::hours(24);
-    let validate_params = format!("{}{}", email, expires_at.timestamp());
-    let link = super::make_confirmation_data(&validate_params);
-    let confirmation_hash = super::hash_password(&link)
-        .map(|hash| super::to_url(&hash))
-        .expect("Error hashing link");
-    let req = srv.get(format!("/register/{}/{}/{}", confirmation_hash, email, expires_at.timestamp()))
-        .timeout(Duration::new(15, 0));
+    let req = registerLinkMock(&mut srv, email, email, true);
     let mut response = srv.block_on(req.send()).unwrap();
     // println!("response : {:#?}", response);
     assert!(response.status().is_success());
     let result: CommandResult = response.json().wait().expect("Could not parse json"); 
     assert!(!result.success);
     assert_eq!(Some(String::from("Link validity expired")), result.error);
+}
+
+fn registerLinkMock(srv: &mut actix_http_test::TestServerRuntime, email: &str, emailCheck: &str, expired: bool) -> awc::ClientRequest {
+    let mut expires_at = super::Local::now().naive_local() + super::Duration::hours(24);
+    if (expired) {
+        expires_at = super::Local::now().naive_local() - super::Duration::hours(24);
+    }
+    let validate_params = format!("{}{}", email, expires_at.timestamp());
+    let link = super::make_confirmation_data(&validate_params);
+    let confirmation_hash = super::hash_password(&link)
+        .map(|hash| super::to_url(&hash))
+        .expect("Error hashing link");
+    return srv.get(format!("/register/{}/{}/{}", confirmation_hash, emailCheck, expires_at.timestamp()))
+        .timeout(Duration::new(15, 0));
 }

@@ -62,31 +62,6 @@ fn test_request() {
 
 use regex::Regex;
 
-// fn get_session_cookie<'req>(response: awc::ClientResponse) -> actix_http::cookie::Cookie<'req> {
-//     lazy_static! {
-//         static ref RE: Regex = Regex::new(r#"actix_session=([^;]*)"#).unwrap();
-//     }
-//     let cookies = response.headers().get("set-cookie").unwrap().to_str().unwrap();
-//     let cookie_session:&str = RE.captures(cookies).unwrap()
-//         .get(1).unwrap()
-//         .as_str();
-//     awc::http::Cookie::build("actix-session", format!("{}", cookie_session)).path("/").secure(false).finish()
-// }
-
-// fn keep_session<'req>(response: awc::ClientResponse<impl futures::stream::Stream>, request: &'req mut awc::ClientRequest){
-//     lazy_static! {
-//         static ref RE: Regex = Regex::new(r#"actix_session=([^;]*)"#).unwrap();
-//     }
-//     let cookies = response.headers().get("set-cookie").unwrap().to_str().unwrap();
-//     let cookie_session:&str = RE.captures(cookies).unwrap()
-//         .get(1).unwrap()
-//         .as_str();
-//     request.cookie(
-//             awc::http::Cookie::build("actix-session", format!("{}", cookie_session))
-//             .path("/").secure(false).finish(),
-//         );
-// }
-
 #[test]
 fn test_validate() {
     dotenv().ok();
@@ -121,7 +96,7 @@ fn test_validate() {
     let email = "email@test.fr";
 
     // 1. Mock register request
-    let req = registerLinkMock(&mut srv, email, email, false);
+    let req = register_link_mock(&mut srv, email, email, false);
     // 2. Validate link
     let mut response = srv.block_on(req.send()).unwrap();
     assert!(response.status().is_success());
@@ -129,43 +104,46 @@ fn test_validate() {
     let result: CommandResult = response.json().wait().expect("Could not parse json"); 
     // println!("err: {}", result.error.unwrap_or(String::from("none")));
     assert!(result.success);
-
     // 3. Finish registration with user data
     let mut req: awc::ClientRequest = srv.post("/register/validate").timeout(Duration::new(15, 0));
-    // keep_session(response, &mut req);
-    // req = req.cookie(get_session_cookie(response));
-    lazy_static! {
-        static ref RE: Regex = Regex::new(r#"actix-session=([^;]*)"#).unwrap();
-    }
-    let cookies = response.headers().get("set-cookie").unwrap().to_str().unwrap();
-    let cookie_session = RE.captures(cookies).unwrap().get(1).unwrap().as_str();
-    req = req.cookie(
-        awc::http::Cookie::build("actix-session", format!("{}", cookie_session))
-        .path("/").secure(false).finish(),
-        );
-
+    req = keep_session(response, req);
     let form = super::ValidateForm { username:  String::from("username"), password: String::from("passwd") };
     let mut response = srv.block_on(req.send_form(&form)).unwrap();
     assert!(response.status().is_success());
     let result: CommandResult = response.json().wait().expect("Could not parse json"); 
     assert!(result.success);
 
-    //Registering with same email should now fail
-    let formRequest = super::RequestForm { email:  String::from(email) };
-    let reqRequest = srv.post("/register/request").timeout(Duration::new(15, 0));
-    let mut response = srv.block_on(reqRequest.send_form(&formRequest)).unwrap();
+    // ----------- Registering with same email should now fail
+    let form_request = super::RequestForm { email:  String::from(email) };
+    let req_request = srv.post("/register/request").timeout(Duration::new(15, 0));
+    let mut response = srv.block_on(req_request.send_form(&form_request)).unwrap();
     // println!("response : {:#?}", response);
     assert!(response.status().is_success());
     let result: CommandResult = response.json().wait().expect("Could not parse json"); 
     assert!(!result.success);
     assert_eq!(Some(String::from("Email already taken")), result.error);
 
-    //Registering with same login should now fail
+    // ----------- Registering with same username should now fail
+    // 1. Mock register request
+    let email = "emailNewName@test.fr";
+    let req = register_link_mock(&mut srv, email, email, false);
+    // 2. Validate link
+    let mut response = srv.block_on(req.send()).unwrap();
+    let result: CommandResult = response.json().wait().expect("Could not parse json"); 
+    // 3. Finish registration with user data
+    let mut req: awc::ClientRequest = srv.post("/register/validate").timeout(Duration::new(15, 0));
+    req = keep_session(response, req);
+    let form = super::ValidateForm { username:  String::from("username"), password: String::from("passwd") };
+    let mut response = srv.block_on(req.send_form(&form)).unwrap();
+    assert!(response.status().is_success());
+    let result: CommandResult = response.json().wait().expect("Could not parse json"); 
+    assert!(!result.success);
+    assert_eq!(Some(String::from("Username already taken")), result.error);
 
     // ================ Bad link
     //
     let emailbad = "emailo@test.fr";
-    let req = registerLinkMock(&mut srv, email, emailbad, false);
+    let req = register_link_mock(&mut srv, email, emailbad, false);
     let mut response2 = srv.block_on(req.send()).unwrap();
     assert!(response2.status().is_success());
     let result: CommandResult = response2.json().wait().expect("Could not parse json"); 
@@ -174,7 +152,7 @@ fn test_validate() {
 
     // ================ Link validity expired
     //
-    let req = registerLinkMock(&mut srv, email, email, true);
+    let req = register_link_mock(&mut srv, email, email, true);
     let mut response = srv.block_on(req.send()).unwrap();
     // println!("response : {:#?}", response);
     assert!(response.status().is_success());
@@ -183,9 +161,21 @@ fn test_validate() {
     assert_eq!(Some(String::from("Link validity expired")), result.error);
 }
 
-fn registerLinkMock(srv: &mut actix_http_test::TestServerRuntime, email: &str, emailCheck: &str, expired: bool) -> awc::ClientRequest {
+fn keep_session(response: awc::ClientResponse<impl futures::stream::Stream>, request: awc::ClientRequest) -> awc::ClientRequest {
+    lazy_static! {
+        static ref RE: Regex = Regex::new(r#"actix-session=([^;]*)"#).unwrap();
+    }
+    let cookies = response.headers().get("set-cookie").unwrap().to_str().unwrap();
+    let cookie_session : &str = RE.captures(cookies).unwrap().get(1).unwrap().as_str();
+    request.cookie(
+        awc::http::Cookie::build("actix-session", format!("{}", cookie_session))
+        .path("/").secure(false).finish(),
+        )
+}
+
+fn register_link_mock(srv: &mut actix_http_test::TestServerRuntime, email: &str, email_check: &str, expired: bool) -> awc::ClientRequest {
     let mut expires_at = super::Local::now().naive_local() + super::Duration::hours(24);
-    if (expired) {
+    if expired {
         expires_at = super::Local::now().naive_local() - super::Duration::hours(24);
     }
     let validate_params = format!("{}{}", email, expires_at.timestamp());
@@ -193,6 +183,6 @@ fn registerLinkMock(srv: &mut actix_http_test::TestServerRuntime, email: &str, e
     let confirmation_hash = super::hash_password(&link)
         .map(|hash| super::to_url(&hash))
         .expect("Error hashing link");
-    return srv.get(format!("/register/{}/{}/{}", confirmation_hash, emailCheck, expires_at.timestamp()))
+    return srv.get(format!("/register/{}/{}/{}", confirmation_hash, email_check, expires_at.timestamp()))
         .timeout(Duration::new(15, 0));
 }

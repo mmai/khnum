@@ -38,25 +38,20 @@ pub fn request(
     pool: web::Data<DbPool>,
 ) -> impl Future<Item = HttpResponse, Error = Error> {
     let form_data = form_data.into_inner();
-    let res = check_email_available(pool.clone(), &form_data.email);
-    match res {
-        Ok(cde_res) => {
-            if !cde_res.success {
-                result(Ok(HttpResponse::Ok().json(cde_res)))
-            } else {
-                let expires_at = Local::now().naive_local() + Duration::hours(24);
-                let res = send_confirmation(form_data.email, expires_at);
-                result(Ok(HttpResponse::Ok().json(res)))
-            }
-        }
-        Err(err) => {
-           result(Err(err.into()))
-        }
+
+    let email_exists = user_handler::email_exists(pool.clone(), &form_data.email).expect("error when checking email");
+    if !email_exists {
+        let cde_res = CommandResult {success: false, error: Some(String::from("Email does not exists"))};
+        result(Ok(HttpResponse::Ok().json(cde_res)))
+    } else {
+        let expires_at = Local::now().naive_local() + Duration::hours(24);
+        let res = send_confirmation(form_data.email, expires_at);
+        result(Ok(HttpResponse::Ok().json(res)))
     }
 }
 
 // ---------------- Validate link action ------------
-pub fn validate_link( 
+pub fn check( 
     session: Session,
     data: web::Path<(String, String, String)>, 
     db: web::Data<DbPool>,) 
@@ -97,14 +92,13 @@ pub fn validate_link(
 
 // -------- 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ValidateForm {
-    username: String,
+pub struct PasswordForm {
     password: String,
 }
 
-pub fn register(
+pub fn change_password(
     session: Session,
-    form_data: web::Form<ValidateForm>,
+    form_data: web::Form<PasswordForm>,
     pool: web::Data<DbPool>,
 // ) -> impl Future<Item = HttpResponse, Error = ServiceError> {
 ) -> impl Future<Item = HttpResponse, Error = Error> {
@@ -113,52 +107,16 @@ pub fn register(
     let res = {
         let opt = session.get::<String>("email").expect("could not get session email");
         let email = opt.unwrap();
-        let cde_res = check_existence(pool.clone(), &email, &form_data.username).expect("error when checking existence");
-        if !cde_res.success {
+        let email_exists = user_handler::email_exists(pool.clone(), &email).expect("error when checking email");
+        if !email_exists {
+            let cde_res = CommandResult {success: false, error: Some(String::from("Email does not exists"))};
             Ok(HttpResponse::Ok().json(cde_res))
         } else {
-            let user = user_handler::add(pool, email, form_data.username, form_data.password).expect("error when inserting new user");
+            let user = user_handler::update_password(pool, email, form_data.password).expect("error when updating password");
             Ok( HttpResponse::Ok().json(CommandResult {success: true, error: None}))
         }
     };
     result(res)
-}
-
-fn check_email_available(pool: web::Data<DbPool>, email: &String) -> Result<CommandResult, Error> {
-    let res = user_handler::email_exists(pool, email);
-    match res {
-        Ok(email_exists) => {
-            if email_exists {
-                return Ok(CommandResult {success: false, error: Some(String::from("Email already taken"))});
-            }
-            Ok(CommandResult {success: true, error: None})
-        }
-        Err(err) => {
-            println!("Error when looking unicity : {}", err);
-            Err(err.into())
-        }
-    }
-}
-
-fn check_existence(pool: web::Data<DbPool>, email: &String, login: &String) -> Result<CommandResult, Error> {
-    let res = user_handler::fetch(pool, email, login);
-    match res {
-        Ok(users) => {
-            if users.len() == 0 {
-                return Ok(CommandResult {success: true, error: None});
-            }
-            let mut err_message = "Username already taken";
-            let same_email: Vec<&SlimUser> = users.iter().filter(|user| &user.email == email).collect();
-            if same_email.len() > 0 {
-                err_message = "Email already taken";
-            }
-            Ok(CommandResult {success: false, error: Some(String::from(err_message))})
-        }
-        Err(err) => {
-            println!("Error when looking unicity : {}", err);
-            Err(err.into())
-        }
-    }
 }
 
 fn make_confirmation_data(msg: &str) -> String {
@@ -178,11 +136,11 @@ fn send_confirmation(email: String, expires_at: NaiveDateTime) -> CommandResult 
     let confirmation_hash = hash_password(&link)
         .map(|hash| to_url(&hash))
         .expect("Error hashing link");
-    let url = format!("{}/register/{}/{}/{}", base_url, confirmation_hash, to_url(&email), expires_at.timestamp());
+    let url = format!("{}/user/changepassword/{}/{}/{}", base_url, confirmation_hash, to_url(&email), expires_at.timestamp());
     let email_body = format!(
-        "Please click on the link below to complete registration. <br/>
+        "Please click on the link below to change your password. <br/>
          <a href=\"{url}\">{url}</a> <br>
-         your Invitation expires on <strong>{date}</strong>",
+         link expires on <strong>{date}</strong>",
          url = url,
          date = expires_at
             .format("%I:%M %p %A, %-d %B, %C%y")
@@ -194,7 +152,7 @@ fn send_confirmation(email: String, expires_at: NaiveDateTime) -> CommandResult 
     let email = Email::builder()
         .from((sending_email, "Activue"))
         .to(recipient)
-        .subject("You have been invited to join Activue")
+        .subject("Password reset")
         .html(email_body)
         .build();
     assert!(email.is_ok());
@@ -228,5 +186,3 @@ fn send_confirmation(email: String, expires_at: NaiveDateTime) -> CommandResult 
 
 #[cfg(test)]
 mod tests;
-// #[path = "./register_test.rs"] // avoid creating a /register folder
-// mod register_test;

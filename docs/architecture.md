@@ -22,6 +22,7 @@ Form (username, password) (with session cookie) -> post to
 /register/validate
   -> get session email
   -> check email not taken
+  -> check username not taken
   -> hash password
   -> create user
 

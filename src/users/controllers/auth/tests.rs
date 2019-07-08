@@ -27,6 +27,7 @@ fn test_login() {
 
         HttpService::new(
             App::new().data(pool.clone())
+            .wrap(CookieSession::signed(&[0; 32]).secure(false))
             .service( web::resource("/auth") // routes for authentication
                       .route(web::post().to_async(users::controllers::auth::login))
                       .route(web::delete().to(users::controllers::auth::logout))
@@ -69,8 +70,10 @@ fn test_login() {
     };
     let req = srv.post("/auth").timeout(Duration::new(15, 0));
 
+    println!(" unknown get..");
     let response = srv.block_on(req.send_form(&unknown)).unwrap();
-    assert!(response.status().is_success());
+    println!(" unknown : {:#?}", response);
+    assert!(!response.status().is_success());
     // let result: CommandResult = response.json().wait().expect("Could not parse json"); 
     // assert!(!result.success);
     // assert_eq!(Some(String::from("Login does not exists")), result.error);
@@ -92,6 +95,7 @@ fn test_logout() {
 
         HttpService::new(
             App::new().data(pool.clone())
+            .wrap(CookieSession::signed(&[0; 32]).secure(false))
             .service( web::resource("/auth") // routes for authentication
                       .route(web::post().to_async(users::controllers::auth::login))
                       .route(web::delete().to(users::controllers::auth::logout))
@@ -113,21 +117,22 @@ fn test_logout() {
     // let hashed_password = hash_password("password").expect("Error hashing password");
     let form = super::AuthData { login: String::from("login"), password: String::from("password")};
     let req = srv.post("/auth").timeout(Duration::new(15, 0));
-    let _response = srv.block_on(req.send_form(&form)).unwrap();
+    let response = srv.block_on(req.send_form(&form)).unwrap();
     // let result: CommandResult = response.json().wait().expect("Could not parse json"); 
     //  Logout
-    let req = srv
+    let mut req = srv
         // .delete("/auth")
         .request(http::Method::DELETE, srv.url("/auth"))
         .timeout(Duration::new(15, 0));
+    req = keep_session(response, req); //Via session cookie
                         
-    let _response = srv.block_on(req.send()).unwrap();
+    let response = srv.block_on(req.send()).unwrap();
     // let result: CommandResult = response.json().wait().expect("Could not parse json"); 
 
-    let req = srv.get("/auth").timeout(Duration::new(15, 0));
+    let mut req = srv.get("/auth").timeout(Duration::new(15, 0));
+    req = keep_session(response, req); //Via session cookie
     let mut response = srv.block_on(req.send()).unwrap();
-    let result: SlimUser = response.json().wait().expect("Could not parse json"); 
-    assert!(result.email.is_empty());
+    assert_eq!(response.status(), http::StatusCode::UNAUTHORIZED);
 }
 
 fn keep_session(response: awc::ClientResponse<impl futures::stream::Stream>, request: awc::ClientRequest) -> awc::ClientRequest {

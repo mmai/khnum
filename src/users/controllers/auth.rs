@@ -38,9 +38,7 @@ pub fn login(
                 let token = create_token(&user)?;
                 id.remember(token);
                 //Via session cookie
-                println!("mise en session de : {:?}", &user);
                 if session.set("user", user).is_ok() {
-                    println!(" user session set");
                     // ServiceError::InternalServerError
                 }
                 Ok(HttpResponse::Ok().into())
@@ -49,7 +47,10 @@ pub fn login(
         }})
 }
 
-pub fn logout(id: Identity) -> impl Responder {
+pub fn logout(
+    session: Session,
+    id: Identity) -> impl Responder {
+    session.clear();
     id.forget();
     HttpResponse::Ok()
 }
@@ -58,11 +59,15 @@ pub fn get_me(
     session: Session,
     // logged_user: auth_handler::LoggedUser
     ) -> HttpResponse {
-
+    // ) -> impl Future<Item = HttpResponse, Error = Error> {
         let opt = session.get::<models::SlimUser>("user").expect("could not get session user");
-        let user = opt.unwrap();
-      println!("user : {:?}", user);
-    HttpResponse::Ok().json(user)
+        match(opt){
+            // Ok(user) => Ok(HttpResponse::Ok().json(user)),
+            // Err(err) => Ok(err.error_response())
+            Some(user) => HttpResponse::Ok().json(user),
+            None => HttpResponse::Unauthorized().json("Unauthorized")
+        }
+        // let user = opt.unwrap();
     // HttpResponse::Ok().json(logged_user)
 }
 

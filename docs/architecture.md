@@ -26,7 +26,7 @@ Form (username, password) (with session cookie) -> post to
   -> hash password
   -> create user
 
-## Forgotten  password TODO
+## Forgotten  password
 
 Form (email) -> post to
 /user/forgotten 

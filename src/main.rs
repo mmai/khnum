@@ -36,7 +36,7 @@ fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         // secret is a random minimum 32 bytes long base 64 string
         let secret: String = dotenv::var("SECRET_KEY").unwrap_or_else(|_| "0123".repeat(8));
-        let domain: String = dotenv::var("DOMAIN").unwrap_or_else(|_| "localhost".to_string());
+        // let domain: String = dotenv::var("DOMAIN").unwrap_or_else(|_| "localhost".to_string());
 
         App::new()
             .data(pool.clone())

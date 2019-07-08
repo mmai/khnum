@@ -32,7 +32,7 @@ pub fn update_password(pool: web::Data<DbPool>, login: String, password: String)
 
     #[cfg(not(test))]
     let updated_row: Result<User, diesel::result::Error> = diesel::update(dsl::users.filter(dsl::login.eq(login)))
-        .set(password::active.eq(password))
+        .set(dsl::password.eq(password))
         .get_result(&conn);
 
     return Ok(());

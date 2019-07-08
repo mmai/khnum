@@ -129,7 +129,7 @@ fn test_validate() {
     let req = register_link_mock(&mut srv, email, email, false);
     // 2. Validate link
     let mut response = srv.block_on(req.send()).unwrap();
-    let result: CommandResult = response.json().wait().expect("Could not parse json"); 
+    let _result: CommandResult = response.json().wait().expect("Could not parse json"); 
     // 3. Finish registration with user data
     let mut req: awc::ClientRequest = srv.post("/register/validate").timeout(Duration::new(15, 0));
     req = keep_session(response, req);

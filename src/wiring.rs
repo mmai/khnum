@@ -36,7 +36,7 @@ pub fn test_conn_init() -> DbPool {
     let manager = r2d2::ConnectionManager::<MyConnection>::new(":memory:");
     let pool = r2d2::Pool::builder().max_size(2).build(manager).expect("Failed to create pool.");
     let conn = &pool.get().unwrap();
-    embedded_migrations::run(conn);
+    let _res = embedded_migrations::run(conn);
     pool
 }
 

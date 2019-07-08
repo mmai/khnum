@@ -11,11 +11,11 @@ use crate::users::models::{SlimUser, User};
 use crate::users::utils::decode_token;
 use crate::wiring::MyConnection;
 
-pub fn auth(pool: web::Data<DbPool>, email: String, password: String) -> Result<SlimUser, ServiceError> {
-    use crate::schema::users::dsl::{email, users};
+pub fn auth(pool: web::Data<DbPool>, login: String, password: String) -> Result<SlimUser, ServiceError> {
+    use crate::schema::users::dsl;
     let conn: &MyConnection = &pool.get().unwrap();
 
-    let mut items = users.filter(email.eq(&email)).load::<User>(conn)?;
+    let mut items = dsl::users.filter(dsl::login.eq(&login)).load::<User>(conn)?;
 
     if let Some(user) = items.pop() {
         match verify(&password, &user.password) {
@@ -24,7 +24,7 @@ pub fn auth(pool: web::Data<DbPool>, email: String, password: String) -> Result<
                     return Ok(user.into());
                 }
             }
-            Err(_) => (),
+            Err(_) => ()
         }
     }
     Err(ServiceError::BadRequest(

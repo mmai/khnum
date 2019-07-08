@@ -54,7 +54,7 @@ pub fn request(
 pub fn check( 
     session: Session,
     data: web::Path<(String, String, String)>, 
-    db: web::Data<DbPool>,) 
+    ) 
     // -> impl Future<Item = HttpResponse, Error = Error> {
     -> Box<Future<Item = HttpResponse, Error = Error>> {
 
@@ -112,7 +112,7 @@ pub fn change_password(
             let cde_res = CommandResult {success: false, error: Some(String::from("Email does not exists"))};
             Ok(HttpResponse::Ok().json(cde_res))
         } else {
-            let user = user_handler::update_password(pool, email, form_data.password).expect("error when updating password");
+            let _user = user_handler::update_password(pool, email, form_data.password).expect("error when updating password");
             Ok( HttpResponse::Ok().json(CommandResult {success: true, error: None}))
         }
     };

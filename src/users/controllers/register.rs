@@ -59,7 +59,7 @@ pub fn request(
 pub fn validate_link( 
     session: Session,
     data: web::Path<(String, String, String)>, 
-    db: web::Data<DbPool>,) 
+    ) 
     // -> impl Future<Item = HttpResponse, Error = Error> {
     -> Box<Future<Item = HttpResponse, Error = Error>> {
 
@@ -117,7 +117,7 @@ pub fn register(
         if !cde_res.success {
             Ok(HttpResponse::Ok().json(cde_res))
         } else {
-            let user = user_handler::add(pool, email, form_data.username, form_data.password).expect("error when inserting new user");
+            let _user = user_handler::add(pool, email, form_data.username, form_data.password).expect("error when inserting new user");
             Ok( HttpResponse::Ok().json(CommandResult {success: true, error: None}))
         }
     };
@@ -208,13 +208,13 @@ fn send_confirmation(email: String, expires_at: NaiveDateTime) -> CommandResult 
     //     .credentials(creds)
     //     .transport();
 
-    // let mut mailer = SmtpClient::new_unencrypted_localhost().unwrap().transport();
-    let sendmail = dotenv::var("SENDMAIL").unwrap_or_else(|_| "/usr/sbin/sendmail".to_string()); 
-    let mut mailer = SendmailTransport::new_with_command(sendmail);
-
     // We don't send the mail in test environment
     #[cfg(test)]
     return CommandResult {success: true, error: None};
+
+    // let mut mailer = SmtpClient::new_unencrypted_localhost().unwrap().transport();
+    let sendmail = dotenv::var("SENDMAIL").unwrap_or_else(|_| "/usr/sbin/sendmail".to_string()); 
+    let mut mailer = SendmailTransport::new_with_command(sendmail);
 
     let result = mailer.send(email.unwrap().into());
     match result {

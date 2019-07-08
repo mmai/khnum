@@ -52,7 +52,7 @@ impl From<Error> for ServiceError {
         // Right now we just care about UniqueViolation from diesel
         // But this would be helpful to easily map errors as our app grows
         match error {
-            Error::DatabaseError(kind, info) => {
+            Error::DatabaseError(_kind, info) => {
                 // if let DatabaseErrorKind::UniqueViolation = kind {
                     let message =
                         info.details().unwrap_or_else(|| info.message()).to_string();
@@ -60,7 +60,10 @@ impl From<Error> for ServiceError {
                 // }
                 // ServiceError::InternalServerError
             }
-            _ => ServiceError::InternalServerError,
+            _ => {
+                // println!("debug: default error {:?}", error);
+                ServiceError::InternalServerError
+            },
         }
     }
 }

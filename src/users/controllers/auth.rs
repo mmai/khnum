@@ -1,11 +1,14 @@
 use actix_web::middleware::identity::Identity;
+use actix_session::{CookieSession, Session};
 use actix_web::{web, Error, HttpRequest, HttpResponse, Responder, ResponseError};
 use futures::future::{Future, result};
 
 use crate::wiring::DbPool;
+use crate::errors::ServiceError;
 
 use crate::users::repository::auth_handler;
 use crate::users::utils::create_token;
+use crate::users::models;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AuthData {
@@ -21,6 +24,7 @@ pub struct AuthData {
 
 pub fn login(
     auth_data: web::Form<AuthData>,
+    session: Session,
     id: Identity,
     db: web::Data<DbPool>,
     ) -> impl Future<Item = HttpResponse, Error = Error> {
@@ -30,8 +34,15 @@ pub fn login(
         .then(move |res| { 
             match res {
             Ok(user) => {
+                //Via jwt
                 let token = create_token(&user)?;
                 id.remember(token);
+                //Via session cookie
+                println!("mise en session de : {:?}", &user);
+                if session.set("user", user).is_ok() {
+                    println!(" user session set");
+                    // ServiceError::InternalServerError
+                }
                 Ok(HttpResponse::Ok().into())
             }
             Err(err) => Ok(err.error_response())
@@ -43,8 +54,16 @@ pub fn logout(id: Identity) -> impl Responder {
     HttpResponse::Ok()
 }
 
-pub fn get_me(logged_user: auth_handler::LoggedUser) -> HttpResponse {
-    HttpResponse::Ok().json(logged_user)
+pub fn get_me(
+    session: Session,
+    // logged_user: auth_handler::LoggedUser
+    ) -> HttpResponse {
+
+        let opt = session.get::<models::SlimUser>("user").expect("could not get session user");
+        let user = opt.unwrap();
+      println!("user : {:?}", user);
+    HttpResponse::Ok().json(user)
+    // HttpResponse::Ok().json(logged_user)
 }
 
 #[cfg(test)]

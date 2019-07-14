@@ -36,7 +36,7 @@ pub struct RequestForm {
 pub fn request(
     form_data: web::Form<RequestForm>,
     pool: web::Data<DbPool>,
-) -> impl Future<Item = HttpResponse, Error = Error> {
+) -> impl Future<Item = HttpResponse, Error = ServiceError> {
     let form_data = form_data.into_inner();
 
     let email_exists = user_handler::email_exists(pool.clone(), &form_data.email).expect("error when checking email");
@@ -56,7 +56,7 @@ pub fn check(
     data: web::Path<(String, String, String)>, 
     ) 
     // -> impl Future<Item = HttpResponse, Error = Error> {
-    -> Box<Future<Item = HttpResponse, Error = Error>> {
+    -> Box<Future<Item = HttpResponse, Error = ServiceError>> {
 
     //Verify link
     let hashlink = from_url(&data.0);
@@ -101,7 +101,7 @@ pub fn change_password(
     form_data: web::Form<PasswordForm>,
     pool: web::Data<DbPool>,
 // ) -> impl Future<Item = HttpResponse, Error = ServiceError> {
-) -> impl Future<Item = HttpResponse, Error = Error> {
+) -> impl Future<Item = HttpResponse, Error = ServiceError> {
     let form_data = form_data.into_inner();
 
     let res = {

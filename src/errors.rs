@@ -1,6 +1,6 @@
 use actix_web::{error::ResponseError, HttpResponse};
 use derive_more::Display;
-use diesel::result::{DatabaseErrorKind, Error};
+use diesel::result::{DatabaseErrorKind, Error as DBError};
 use std::convert::From;
 use uuid::ParseError;
 use actix::MailboxError;
@@ -47,12 +47,12 @@ impl From<ParseError> for ServiceError {
     }
 }
 
-impl From<Error> for ServiceError {
-    fn from(error: Error) -> ServiceError {
+impl From<DBError> for ServiceError {
+    fn from(error: DBError) -> ServiceError {
         // Right now we just care about UniqueViolation from diesel
         // But this would be helpful to easily map errors as our app grows
         match error {
-            Error::DatabaseError(_kind, info) => {
+            DBError::DatabaseError(_kind, info) => {
                 // if let DatabaseErrorKind::UniqueViolation = kind {
                     let message =
                         info.details().unwrap_or_else(|| info.message()).to_string();

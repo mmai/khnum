@@ -27,7 +27,7 @@ pub fn login(
     session: Session,
     id: Identity,
     db: web::Data<DbPool>,
-    ) -> impl Future<Item = HttpResponse, Error = Error> {
+    ) -> impl Future<Item = HttpResponse, Error = ServiceError> {
     let data: AuthData = auth_data.into_inner();
 
     web::block( move || auth_handler::auth(db, data.login, data.password))
@@ -61,7 +61,7 @@ pub fn get_me(
     ) -> HttpResponse {
     // ) -> impl Future<Item = HttpResponse, Error = Error> {
         let opt = session.get::<models::SlimUser>("user").expect("could not get session user");
-        match(opt){
+        match opt {
             // Ok(user) => Ok(HttpResponse::Ok().json(user)),
             // Err(err) => Ok(err.error_response())
             Some(user) => HttpResponse::Ok().json(user),

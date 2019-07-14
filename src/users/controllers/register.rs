@@ -36,7 +36,7 @@ pub struct RequestForm {
 pub fn request(
     form_data: web::Form<RequestForm>,
     pool: web::Data<DbPool>,
-) -> impl Future<Item = HttpResponse, Error = Error> {
+) -> impl Future<Item = HttpResponse, Error = ServiceError> {
     let form_data = form_data.into_inner();
     let res = check_email_available(pool.clone(), &form_data.email);
     match res {
@@ -50,7 +50,7 @@ pub fn request(
             }
         }
         Err(err) => {
-           result(Err(err.into()))
+           result(Err(err))
         }
     }
 }
@@ -61,7 +61,7 @@ pub fn validate_link(
     data: web::Path<(String, String, String)>, 
     ) 
     // -> impl Future<Item = HttpResponse, Error = Error> {
-    -> Box<Future<Item = HttpResponse, Error = Error>> {
+    -> Box<Future<Item = HttpResponse, Error = ServiceError>> {
 
     //Verify link
     let hashlink = from_url(&data.0);
@@ -106,8 +106,8 @@ pub fn register(
     session: Session,
     form_data: web::Form<ValidateForm>,
     pool: web::Data<DbPool>,
-// ) -> impl Future<Item = HttpResponse, Error = ServiceError> {
-) -> impl Future<Item = HttpResponse, Error = Error> {
+) -> impl Future<Item = HttpResponse, Error = ServiceError> {
+// ) -> impl Future<Item = HttpResponse, Error = Error> {
     let form_data = form_data.into_inner();
 
     let res = {
@@ -124,7 +124,7 @@ pub fn register(
     result(res)
 }
 
-fn check_email_available(pool: web::Data<DbPool>, email: &String) -> Result<CommandResult, Error> {
+fn check_email_available(pool: web::Data<DbPool>, email: &String) -> Result<CommandResult, ServiceError> {
     let res = user_handler::email_exists(pool, email);
     match res {
         Ok(email_exists) => {
@@ -135,12 +135,12 @@ fn check_email_available(pool: web::Data<DbPool>, email: &String) -> Result<Comm
         }
         Err(err) => {
             println!("Error when looking unicity : {}", err);
-            Err(err.into())
+            Err(err)
         }
     }
 }
 
-fn check_existence(pool: web::Data<DbPool>, email: &String, login: &String) -> Result<CommandResult, Error> {
+fn check_existence(pool: web::Data<DbPool>, email: &String, login: &String) -> Result<CommandResult, ServiceError> {
     let res = user_handler::fetch(pool, email, login);
     match res {
         Ok(users) => {
@@ -156,7 +156,7 @@ fn check_existence(pool: web::Data<DbPool>, email: &String, login: &String) -> R
         }
         Err(err) => {
             println!("Error when looking unicity : {}", err);
-            Err(err.into())
+            Err(err)
         }
     }
 }

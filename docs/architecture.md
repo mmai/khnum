@@ -4,6 +4,10 @@
 
 * cf. https://gill.net.in/posts/auth-microservice-rust-actix-web1.0-diesel-complete-tutorial/
 
+## Domain driven design / CQRS
+
+https://github.com/KodrAus/rust-web-app
+
 ## Users
 
 ## Registration

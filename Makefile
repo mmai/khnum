@@ -10,7 +10,7 @@ test:
 	cargo test
 coverage:
 	# launch tests & coverage, for tests only: "cargo test"
-	echo "currently fails to #190 tarpaulin bug"
+	echo "currently fails due to #190 tarpaulin bug"
 	cargo tarpaulin -v
 run:
 	cargo watch -x run

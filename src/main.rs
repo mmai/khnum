@@ -21,6 +21,7 @@ use dotenv::dotenv;
 mod wiring;
 mod errors;
 mod schema;
+
 mod users;
 
 use crate::wiring::DbPool;
@@ -31,7 +32,7 @@ fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_BACKTRACE", "1");//XXX works only for panic! macro
     env_logger::init();
     let db_url = dotenv::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let pool = wiring::db_init(db_url); // must be after System::new
+    let pool = wiring::db_init(db_url);
 
     HttpServer::new(move || {
         // secret is a random minimum 32 bytes long base 64 string

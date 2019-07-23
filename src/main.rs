@@ -66,9 +66,9 @@ fn main() -> std::io::Result<()> {
                     //     ),
                     // )
             )
-            .service( web::scope("/register") // everything under '/api/' route
+            .service( web::scope("/register") // everything under '/register/' route
                   .service( web::resource("/request").route(
-                      web::get().to_async(users::controllers::register::request)
+                      web::post().to_async(users::controllers::register::request)
                   ))
                   // route to validate registration
                   .service( web::resource("/{hashlink}/{email}/{expires_at}").route(

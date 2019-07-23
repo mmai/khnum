@@ -26,8 +26,10 @@ fn test_request() {
 
         HttpService::new(
             App::new().data(pool.clone()).service(
-                web::resource("/register/request").route(
-                    web::post().to_async(users::controllers::register::request)
+                web::scope("/register") // everything under '/register/' route
+                    .service( web::resource("/request").route(
+                        web::post().to_async(users::controllers::register::request)
+                    )
                 )
             )
         )

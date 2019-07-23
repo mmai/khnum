@@ -1,18 +1,14 @@
 <template>
   <div class="login">
-    <h1>Registration</h1>
+    <h1>Invitation</h1>
 
     
     {{ log }}
 
     <p>{{ msg }}</p>
-    <label for='login'>Login</label>
-    <input v-model="login"><br>
-    <label for='password'>Password</label>
-    <input type="password" v-model="password"><br>
     <label for='email'>Email</label>
     <input v-model="email"><br>
-    <button v-on:click="sendVerificationEmail">Create account</button>
+    <button v-on:click="sendVerificationEmail">Send invitation</button>
   </div>
 </template>
 
@@ -22,8 +18,6 @@ export default {
   name: "Invitation",
   data() {
     return {
-      login: "",
-      password: "",
       email: ""
     }
   },
@@ -33,11 +27,13 @@ export default {
   },
   methods: {
     sendVerificationEmail: function () {
-      axios.post( 'api/register', {
-          email: this.email,
-          login: this.login,
-          password: this.password,
-      })
+      const params = new URLSearchParams();//This uses  form encoded
+      params.append('email', this.email);
+      axios.post('/register/request', params)
+      // To use json encoded : needs to modify api 
+      // axios.post( 'register/request', {
+      //     email: this.email,
+      // })
       .then((response) => {
         this.msg = "Please check your email.";
         this.email = "";

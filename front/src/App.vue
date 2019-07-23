@@ -2,11 +2,23 @@
   <div id="app">
     <div id="nav">
       <router-link to="/">Home</router-link> |
-      <router-link to="/register">Register</router-link>
+      <auth></auth>
     </div>
     <router-view />
   </div>
 </template>
+
+<script>
+// @ is an alias to /src
+import Auth from "@/components/Auth.vue";
+
+export default {
+  name: "app",
+  components: {
+    Auth
+  }
+};
+</script>
 
 <style lang="scss">
 #app {

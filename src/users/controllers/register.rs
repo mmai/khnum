@@ -37,6 +37,7 @@ pub fn request(
     form_data: web::Form<RequestForm>,
     pool: web::Data<DbPool>,
 ) -> impl Future<Item = HttpResponse, Error = ServiceError> {
+    // panic!("in request ");
     let form_data = form_data.into_inner();
     let res = check_email_available(pool.clone(), &form_data.email);
     match res {

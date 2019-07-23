@@ -1,19 +1,18 @@
 <template>
   <div class="home">
-    <auth></auth>
     <img alt="Vue logo" src="../assets/logo.png" />
-    Welcome to Activue
+    <Invitation msg="Please enter your email to receive an Invitation" />
   </div>
 </template>
 
 <script>
 // @ is an alias to /src
-import Auth from "@/components/Auth.vue";
+import Invitation from "@/components/Invitation.vue";
 
 export default {
-  name: "home",
+  name: "invitation",
   components: {
-    Auth
+  Invitation
   }
 };
 </script>

@@ -16,6 +16,8 @@ export default new Vuex.Store({
       state.status = "loading";
     },
     auth_success(state, payload) {
+      console.log("auth success");
+      console.log(state);
       state.status = "success";
       state.token = payload.token;
       state.user = payload.user;
@@ -58,8 +60,9 @@ export default new Vuex.Store({
         api
           .login(user)
           .then(resp => {
-            const token = resp.data.value;
-            const user = resp.data.user;
+          console.log(resp);
+            const user = resp.data;
+            const token = "???";
             commit("auth_success", { user: user, token: token });
             Vue.prototype.$http.defaults.headers.common["X-Auth-Token"] = token;
             resolve(resp);

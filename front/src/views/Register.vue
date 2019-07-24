@@ -4,39 +4,31 @@
 
     {{ log }}
 
-    <p>Please enter your email and new password</p>
+    <p>Please choose a username and a password to finish your registration</p>
 
-    <input v-model="email" /><br />
+    <input v-model="username" /><br />
     <input v-model="password" /><br />
     <button v-on:click="register">Register</button>
   </div>
 </template>
 
 <script>
-function getUrlVars() {
-  var vars = {};
-  window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m, key, value) {
-    vars[key] = value;
-  });
-  return vars;
-}
-
 import axios from 'axios'
 export default {
   name: "register",
   data() {
     return {
       log: "",
-      email: "",
+      username: "",
       password: ""
     }
   },
   methods: {
     register: function () {
-      let invitation_id = getUrlVars().id;
-      axios.post( 'api/register/' + invitation_id, {
-          password: this.password,
-      })
+      const params = new URLSearchParams();//This uses  form encoded
+      params.append("username", this.username);
+      params.append("password", this.password);
+      axios.post("/register/validate", params)
       .then((response) => {
         this.password = "";
         this.log = response;

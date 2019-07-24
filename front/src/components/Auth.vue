@@ -1,7 +1,11 @@
 <template>
-  <span v-if="this.$store.connected"> {{ this.$store.username }}</span>
+  <span v-if="this.$store.connected">
+    {{ this.$store.username }}
+    <router-link to="/logout">Logout</router-link>
+  </span>
   <span v-else>
       <router-link to="/invitation">Get invite</router-link>
+      <router-link to="/login">Login</router-link>
   </span>
 </template>
 

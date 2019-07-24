@@ -30,7 +30,8 @@ pub struct CommandResult {
 // UserData is used to extract data from a post request by the client
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RequestForm {
-    email: String
+    email: String,
+    register_url: String
 }
 
 pub fn request(
@@ -46,7 +47,7 @@ pub fn request(
                 result(Ok(HttpResponse::Ok().json(cde_res)))
             } else {
                 let expires_at = Local::now().naive_local() + Duration::hours(24);
-                let res = send_confirmation(form_data.email, expires_at);
+                let res = send_confirmation(form_data.email, form_data.register_url, expires_at);
                 result(Ok(HttpResponse::Ok().json(res)))
             }
         }
@@ -59,7 +60,7 @@ pub fn request(
 // ---------------- Validate link action ------------
 pub fn validate_link( 
     session: Session,
-    data: web::Path<(String, String, String)>, 
+    data: web::Path<(String, String, String, String)>, 
     ) 
     // -> impl Future<Item = HttpResponse, Error = Error> {
     -> Box<Future<Item = HttpResponse, Error = ServiceError>> {
@@ -68,6 +69,7 @@ pub fn validate_link(
     let hashlink = from_url(&data.0);
     let email = from_url(&data.1);
     let expires_at: i64 = data.2.clone().parse().unwrap();
+    let register_url = from_url(&data.3);
     let validate_params = format!("{}{}", email, expires_at);
     let local_link = make_confirmation_data(&validate_params);
     let validate_result = verify(local_link, &hashlink[..])
@@ -92,7 +94,15 @@ pub fn validate_link(
     // println!("{:#?}", validate_result);
     match validate_result {
         Err(res) => Box::new(result(Ok(HttpResponse::Ok().json(res)))),
-        Ok(res) => Box::new(result(Ok(HttpResponse::Ok().json(res))))
+        Ok(res) => {
+               Box::new(result(Ok(
+                           // HttpResponse::Ok().json(res)
+                           HttpResponse::Found()
+                           .header(http::header::LOCATION, register_url)
+                           .finish()
+                           .into_body()
+               )))
+        }
     }
 }
 
@@ -118,7 +128,8 @@ pub fn register(
         if !cde_res.success {
             Ok(HttpResponse::Ok().json(cde_res))
         } else {
-            let _user = user_handler::add(pool, email, form_data.username, form_data.password).expect("error when inserting new user");
+            let hashed_password = hash_password(&form_data.password).expect("Error hashing password");
+            let _user = user_handler::add(pool, email, form_data.username, hashed_password).expect("error when inserting new user");
             Ok( HttpResponse::Ok().json(CommandResult {success: true, error: None}))
         }
     };
@@ -167,7 +178,7 @@ fn make_confirmation_data(msg: &str) -> String {
     format!("{}{}", msg, key)
 }
 
-fn send_confirmation(email: String, expires_at: NaiveDateTime) -> CommandResult {
+fn send_confirmation(email: String, register_url: String, expires_at: NaiveDateTime) -> CommandResult {
     let validate_params = format!("{}{}", email, expires_at.timestamp());
     // println!("{}{}", email, expires_at.timestamp());
 
@@ -179,7 +190,7 @@ fn send_confirmation(email: String, expires_at: NaiveDateTime) -> CommandResult 
     let confirmation_hash = hash_password(&link)
         .map(|hash| to_url(&hash))
         .expect("Error hashing link");
-    let url = format!("{}/register/{}/{}/{}", base_url, confirmation_hash, to_url(&email), expires_at.timestamp());
+    let url = format!("{}/register/{}/{}/{}/{}", base_url, confirmation_hash, to_url(&email), expires_at.timestamp(), to_url(&register_url));
     let email_body = format!(
         "Please click on the link below to complete registration. <br/>
          <a href=\"{url}\">{url}</a> <br>

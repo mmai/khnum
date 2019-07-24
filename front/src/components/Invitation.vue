@@ -27,9 +27,13 @@ export default {
   },
   methods: {
     sendVerificationEmail: function () {
+      var getUrl = window.location;
+      var baseUrl = getUrl .protocol + "//" + getUrl.host;
+
       const params = new URLSearchParams();//This uses  form encoded
-      params.append('email', this.email);
-      axios.post('/register/request', params)
+      params.append("email", this.email);
+      params.append("register_url", baseUrl + "/#/register");
+      axios.post("/register/request", params)
       // To use json encoded : needs to modify api 
       // axios.post( 'register/request', {
       //     email: this.email,

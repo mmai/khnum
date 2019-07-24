@@ -71,11 +71,11 @@ fn main() -> std::io::Result<()> {
                       web::post().to_async(users::controllers::register::request)
                   ))
                   // route to validate registration
-                  .service( web::resource("/{hashlink}/{email}/{expires_at}").route(
+                  .service( web::resource("/{hashlink}/{email}/{expires_at}/{register_url}").route(
                           web::get().to_async(users::controllers::register::validate_link)
                   ))
                   .service( web::resource("/validate").route(
-                          web::get().to_async(users::controllers::register::register)
+                          web::post().to_async(users::controllers::register::register)
                   ))
             )
             // serve static files

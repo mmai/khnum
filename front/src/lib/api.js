@@ -6,9 +6,9 @@ export default {
       axios
         .get("/api/auth")
         .then(resp => {
-          const token = resp.data.value;
-          const user = resp.data.user;
-          localStorage.setItem("token", token);
+          console.log(resp);
+          const user = resp.data;
+          // localStorage.setItem("token", token);
           localStorage.setItem("user", JSON.stringify(user));
           resolve(resp);
         })
@@ -22,9 +22,9 @@ export default {
       axios
         .post("/login", { login: user.email, password: user.password })
         .then(resp => {
-          const token = resp.data.value;
-          const user = resp.data.user;
-          localStorage.setItem("token", token);
+          console.log(resp);
+          const user = resp.data;
+          // localStorage.setItem("token", token);
           localStorage.setItem("user", JSON.stringify(user));
           resolve(resp);
         })
@@ -36,7 +36,7 @@ export default {
   logout: () =>
     new Promise(resolve =>
       axios.post("/logout").then(resp => {
-        localStorage.removeItem("token");
+        // localStorage.removeItem("token");
         localStorage.removeItem("user");
         resolve(resp);
       })

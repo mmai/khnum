@@ -84,7 +84,7 @@ fn test_validate() {
             .service( web::resource("/register/request").route( // To test insertions 
                 web::post().to_async(users::controllers::register::request)
             ))
-            .service( web::resource("/register/{hashlink}/{login}/{expires_at}").route(
+            .service( web::resource("/register/{hashlink}/{login}/{expires_at}/{register_url}").route(
                 web::get().to_async(users::controllers::register::validate_link)
             ))
             .service( web::resource("/register/validate").route( 

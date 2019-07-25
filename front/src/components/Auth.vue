@@ -1,7 +1,7 @@
 <template>
-  <span v-if="this.$store.connected">
-    {{ this.$store.username }}
-    <router-link to="/logout">Logout</router-link>
+  <span v-if="this.$store.state.connected">
+    {{ this.$store.state.user.login }}
+    <button v-on:click="logout">Logout</button>
   </span>
   <span v-else>
       <router-link to="/invitation">Get invite</router-link>
@@ -10,17 +10,22 @@
 </template>
 
 <script>
-import axios from 'axios'
+import axios from "axios"
 export default {
   name: "Auth",
   data() {
     return {
+      connected: this.$store.connected,
+      user: this.$store.user,
     }
   },
   props: {
     log: String
   },
   methods: {
+    logout: function () {
+      this.$store.dispatch("logout");
+    }
   }
 };
 </script>

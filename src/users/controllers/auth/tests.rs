@@ -71,9 +71,10 @@ fn test_login() {
     let req = srv.post("/auth").timeout(Duration::new(15, 0));
 
     println!(" unknown get..");
-    let response = srv.block_on(req.send_form(&unknown)).unwrap();
+    let response = srv.block_on(req.send_form(&unknown));
+    // let response = srv.block_on(req.send_form(&unknown)).unwrap();
     println!(" unknown : {:#?}", response);
-    assert!(!response.status().is_success());
+    assert!(!response.unwrap().status().is_success());
     // let result: CommandResult = response.json().wait().expect("Could not parse json"); 
     // assert!(!result.success);
     // assert_eq!(Some(String::from("Login does not exists")), result.error);

@@ -91,10 +91,12 @@ pub fn validate_link(
                 CommandResult { success: false, error: Some(String::from("Could not save email in session")) }
             }
         });
-    // println!("{:#?}", validate_result);
     match validate_result {
         Err(res) => Box::new(result(Ok(HttpResponse::Ok().json(res)))),
         Ok(res) => {
+            if (!res.success) {
+                Box::new(result(Ok(HttpResponse::Ok().json(res))))
+            } else {
                Box::new(result(Ok(
                            // HttpResponse::Ok().json(res)
                            HttpResponse::Found()
@@ -102,6 +104,7 @@ pub fn validate_link(
                            .finish()
                            .into_body()
                )))
+            }
         }
     }
 }

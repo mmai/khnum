@@ -16,10 +16,7 @@ export default new Vuex.Store({
       state.status = "loading";
     },
     auth_success(state, payload) {
-      console.log("auth success");
-      console.log(state);
       state.status = "success";
-      state.token = payload.token;
       state.user = payload.user;
       state.connected = true;
     },
@@ -29,8 +26,8 @@ export default new Vuex.Store({
     logout(state) {
       //console.log("store-logout")
       state.status = "";
-      state.token = "";
       state.connected = false;
+      state.user = null;
     }
   },
   actions: {
@@ -40,12 +37,10 @@ export default new Vuex.Store({
         api
           .auth_check()
           .then(resp => {
-            const token = resp.data.value;
-            const user = resp.data.user;
-            commit("auth_success", { user: user, token: token });
+            const user = resp.data;
+            commit("auth_success", { user: user });
             resolve(resp);
           }, (err) => {
-            console.log('auth failed');
             commit("auth_error");
             // reject(err);
           })
@@ -60,11 +55,9 @@ export default new Vuex.Store({
         api
           .login(user)
           .then(resp => {
-          console.log(resp);
             const user = resp.data;
-            const token = "???";
-            commit("auth_success", { user: user, token: token });
-            Vue.prototype.$http.defaults.headers.common["X-Auth-Token"] = token;
+            commit("auth_success", { user: user });
+            // Vue.prototype.$http.defaults.headers.common["X-Auth-Token"] = token;
             resolve(resp);
           })
           .catch(err => {
@@ -78,7 +71,6 @@ export default new Vuex.Store({
       return new Promise(resolve => {
         commit("logout");
         api.logout().then(resp => {
-          delete axios.defaults.headers.common["X-Auth-Token"];
           router.push("/login").then(resolve);
           resolve(resp);
         });

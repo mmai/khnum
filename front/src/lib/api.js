@@ -35,10 +35,13 @@ export default {
     ),
   logout: () =>
     new Promise(resolve =>
-      axios.post("/logout").then(resp => {
-        // localStorage.removeItem("token");
+      axios.delete("/api/auth")
+      .then((response) => {
         localStorage.removeItem("user");
-        resolve(resp);
+        resolve(response);
       })
+      // .catch((e) => {
+      //   this.log = e;
+      // })
     )
 };

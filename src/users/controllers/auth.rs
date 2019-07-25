@@ -44,7 +44,7 @@ pub fn login(
                 Ok(HttpResponse::Ok().into())
             }
             Err(err) => {
-                panic!("{:?}", err);
+                // panic!("{:?}", err);
                 Ok(err.error_response())
             }
         }})

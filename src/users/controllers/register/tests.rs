@@ -36,7 +36,10 @@ fn test_request() {
     });
 
     //==== Test request
-    let form = super::RequestForm { email:  String::from("email2@toto.fr") };
+    let form = super::RequestForm { 
+        email:  String::from("email2@toto.fr"),
+        register_url:  String::from("http://www.google.fr"),
+    };
 
     let req = srv.post("/register/request")
         .timeout(Duration::new(15, 0));
@@ -51,6 +54,7 @@ fn test_request() {
     //======== Test request with already registered email
     let existing_user = super::RequestForm {
         email: String::from("email@toto.fr"),
+        register_url:  String::from("http://www.google.fr"),
     };
     let req = srv.post("/register/request")
         .timeout(Duration::new(15, 0));
@@ -101,11 +105,7 @@ fn test_validate() {
     let req = register_link_mock(&mut srv, email, email, false);
     // 2. Validate link
     let mut response = srv.block_on(req.send()).unwrap();
-    assert!(response.status().is_success());
-    // println!("response : {:#?}", response);
-    let result: CommandResult = response.json().wait().expect("Could not parse json"); 
-    // println!("err: {}", result.error.unwrap_or(String::from("none")));
-    assert!(result.success);
+    assert!(response.status().is_redirection());
     // 3. Finish registration with user data
     let mut req: awc::ClientRequest = srv.post("/register/validate").timeout(Duration::new(15, 0));
     req = keep_session(response, req);
@@ -116,7 +116,10 @@ fn test_validate() {
     assert!(result.success);
 
     // ----------- Registering with same email should now fail
-    let form_request = super::RequestForm { email:  String::from(email) };
+    let form_request = super::RequestForm { 
+        email:  String::from(email),
+        register_url:  String::from("http://www.google.fr"),
+    };
     let req_request = srv.post("/register/request").timeout(Duration::new(15, 0));
     let mut response = srv.block_on(req_request.send_form(&form_request)).unwrap();
     // println!("response : {:#?}", response);
@@ -131,7 +134,6 @@ fn test_validate() {
     let req = register_link_mock(&mut srv, email, email, false);
     // 2. Validate link
     let mut response = srv.block_on(req.send()).unwrap();
-    let _result: CommandResult = response.json().wait().expect("Could not parse json"); 
     // 3. Finish registration with user data
     let mut req: awc::ClientRequest = srv.post("/register/validate").timeout(Duration::new(15, 0));
     req = keep_session(response, req);
@@ -147,6 +149,7 @@ fn test_validate() {
     let emailbad = "emailo@test.fr";
     let req = register_link_mock(&mut srv, email, emailbad, false);
     let mut response2 = srv.block_on(req.send()).unwrap();
+    println!("{:?}", response2.status());
     assert!(response2.status().is_success());
     let result: CommandResult = response2.json().wait().expect("Could not parse json"); 
     assert!(!result.success);
@@ -182,9 +185,10 @@ fn register_link_mock(srv: &mut actix_http_test::TestServerRuntime, email: &str,
     }
     let validate_params = format!("{}{}", email, expires_at.timestamp());
     let link = super::make_confirmation_data(&validate_params);
+    let redirect_url = String::from("http://dummyurl");
     let confirmation_hash = super::hash_password(&link)
         .map(|hash| super::to_url(&hash))
         .expect("Error hashing link");
-    return srv.get(format!("/register/{}/{}/{}", confirmation_hash, email_check, expires_at.timestamp()))
+    return srv.get(format!("/register/{}/{}/{}/{}", confirmation_hash, email_check, expires_at.timestamp(), super::to_url(&redirect_url)))
         .timeout(Duration::new(15, 0));
 }

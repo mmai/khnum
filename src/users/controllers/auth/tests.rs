@@ -49,16 +49,18 @@ fn test_login() {
     let mut req = srv.post("/auth")
         // .header(http::header::CONTENT_TYPE, "application/json") // pour version send_body
         .timeout(Duration::new(15, 0));
-    let response = srv.block_on(req.send_form(&form)).unwrap();
+    let mut response = srv.block_on(req.send_form(&form)).unwrap();
         // srv.block_on(req.send_body(r#"{"login":"login","password":"12345678"}"#)).unwrap();
     assert!(response.status().is_success());
+    let user: SlimUser = response.json().wait().expect("Could not parse json"); 
+    assert_eq!(user.email, String::from("email@toto.fr"));
     // let result: CommandResult = response.json().wait().expect("Could not parse json"); 
     // assert!(result.success);
     //should get user email
     let mut req = srv.get("/auth").timeout(Duration::new(15, 0));
     req = keep_session(response, req); //Via session cookie
     let mut response = srv.block_on(req.send()).unwrap();
-    println!("get me : {:#?}", response);
+    // println!("get me : {:#?}", response);
     assert!(response.status().is_success());
     let user: SlimUser = response.json().wait().expect("Could not parse json"); 
     assert_eq!(user.email, String::from("email@toto.fr"));

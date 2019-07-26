@@ -1,6 +1,5 @@
 import Vue from "vue";
 import Vuex from "vuex";
-import axios from "axios";
 import api from "./lib/api";
 
 Vue.use(Vuex);
@@ -10,20 +9,20 @@ export default new Vuex.Store({
     user: JSON.parse(localStorage.getItem("user")) || ""
   },
   mutations: {
-    auth_check(state) {
+    AUTH_CHECK(state) {
     },
-    auth_request(state) {
+    AUTH_REQUEST(state) {
       state.status = "loading";
     },
-    auth_success(state, payload) {
+    AUTH_SUCCESS(state, payload) {
       state.status = "success";
       state.user = payload.user;
       state.connected = true;
     },
-    auth_error(state) {
+    AUTH_ERROR(state) {
       state.status = "error";
     },
-    logout(state) {
+    LOGOUT(state) {
       //console.log("store-logout")
       state.status = "";
       state.connected = false;
@@ -32,48 +31,40 @@ export default new Vuex.Store({
   },
   actions: {
     auth_check({ commit }) {
-      return new Promise((resolve, reject) => {
-        commit("auth_check");
-        api
-          .auth_check()
-          .then(resp => {
+      commit("AUTH_CHECK");
+      api
+        .auth_check()
+        .then(
+          resp => {
             const user = resp.data;
-            commit("auth_success", { user: user });
-            resolve(resp);
-          }, (err) => {
-            commit("auth_error");
-            // reject(err);
-          })
-          .catch(err => {
-            reject(err);
-          });
-      });
+            commit("AUTH_SUCCESS", { user: user });
+          },
+          err => {
+            commit("AUTH_ERROR");
+          }
+        )
+        .catch(err => {
+            commit("AUTH_ERROR");
+        });
     },
     login({ commit }, user) {
-      return new Promise((resolve, reject) => {
-        commit("auth_request");
-        api
-          .login(user)
-          .then(resp => {
-            const user = resp.data;
-            commit("auth_success", { user: user });
-            // Vue.prototype.$http.defaults.headers.common["X-Auth-Token"] = token;
-            resolve(resp);
-          })
-          .catch(err => {
-            this.messageErreur = "Identifiant ou mot de passe invalide";
-            commit("auth_error");
-            reject(err);
-          });
-      });
+      commit("AUTH_REQUEST");
+      api
+        .login(user)
+        .then(resp => {
+          const user = resp.data;
+          commit("AUTH_SUCCESS", { user });
+          // Vue.prototype.$http.defaults.headers.common["X-Auth-Token"] = token;
+        })
+        .catch(err => {
+          this.messageErreur = "Identifiant ou mot de passe invalide";
+          commit("AUTH_ERROR");
+        });
     },
     logout({ commit }, router) {
-      return new Promise(resolve => {
-        commit("logout");
-        api.logout().then(resp => {
-          router.push("/login").then(resolve);
-          resolve(resp);
-        });
+      commit("LOGOUT");
+      api.logout().then(() => {
+        router.push("/login");
       });
     }
   }

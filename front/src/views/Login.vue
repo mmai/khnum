@@ -8,7 +8,6 @@
 </template>
 
 <script>
-import axios from 'axios'
 export default {
   name: "login",
   data() {
@@ -20,17 +19,7 @@ export default {
   },
   methods: {
     login: function () {
-      const params = new URLSearchParams();//This uses  form encoded
-      params.append("login", this.username);
-      params.append("password", this.password);
-      axios.post("/api/auth", params)
-      .then((response) => {
-        this.password = "";
-        this.log = response;
-      })
-      .catch((e) => {
-        this.log = e;
-      })
+      this.$store.dispatch("login", {username: this.username, password: this.password});
     }
   }
 };

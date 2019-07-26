@@ -1,19 +1,11 @@
 <template>
   <div class="home">
-    <auth></auth>
-    <img alt="Vue logo" src="../assets/logo.png" />
     Welcome to Activue
   </div>
 </template>
 
 <script>
-// @ is an alias to /src
-import Auth from "@/components/Auth.vue";
-
 export default {
   name: "home",
-  components: {
-    Auth
-  }
 };
 </script>

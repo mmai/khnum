@@ -1,6 +1,6 @@
 <template>
-  <span v-if="this.$store.state.connected">
-    {{ this.$store.state.user.login }}
+  <span v-if="isConnected">
+    {{ getUser.login }}
     <button v-on:click="logout">Logout</button>
   </span>
   <span v-else>
@@ -10,14 +10,20 @@
 </template>
 
 <script>
-import axios from "axios"
 export default {
   name: "Auth",
   data() {
     return {
-      connected: this.$store.connected,
-      user: this.$store.user,
     }
+  },
+  computed: {
+    isConnected() {
+      return this.$store.state.connected;
+    }, 
+    getUser() {
+      return this.$store.state.user;
+    }, 
+
   },
   props: {
     log: String

@@ -38,10 +38,12 @@ pub fn login(
                 let token = create_token(&user)?;
                 id.remember(token);
                 //Via session cookie
-                if session.set("user", user).is_ok() {
-                    // ServiceError::InternalServerError
-                }
-                Ok(HttpResponse::Ok().into())
+                session.set("user", &user);
+                Ok(HttpResponse::Ok().json(user))
+                // if session.set("user", &user).is_ok() {
+                //     Ok(HttpResponse::Ok().json(user))
+                // }
+                // Ok(err.error_response())
             }
             Err(err) => {
                 // panic!("{:?}", err);
@@ -50,9 +52,7 @@ pub fn login(
         }})
 }
 
-pub fn logout(
-    session: Session,
-    id: Identity) -> impl Responder {
+pub fn logout( session: Session, id: Identity) -> impl Responder {
     session.clear();
     id.forget();
     HttpResponse::Ok()

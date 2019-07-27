@@ -4,13 +4,17 @@ import api from "./lib/api";
 
 Vue.use(Vuex);
 
+// Check if user is known at startup
+let user = JSON.parse(localStorage.getItem("user")) || "";
+
 export default new Vuex.Store({
   state: {
-    user: JSON.parse(localStorage.getItem("user")) || ""
+    status: "",
+    user,
+    connected: !!user
   },
   mutations: {
-    AUTH_CHECK(state) {
-    },
+    AUTH_CHECK() {},
     AUTH_REQUEST(state) {
       state.status = "loading";
     },
@@ -23,10 +27,14 @@ export default new Vuex.Store({
       state.status = "error";
     },
     LOGOUT(state) {
-      //console.log("store-logout")
       state.status = "";
       state.connected = false;
       state.user = null;
+    }
+  },
+  getters: {
+    isConnected: state => {
+      return state.connected;
     }
   },
   actions: {
@@ -37,14 +45,14 @@ export default new Vuex.Store({
         .then(
           resp => {
             const user = resp.data;
-            commit("AUTH_SUCCESS", { user: user });
+            commit("AUTH_SUCCESS", { user });
           },
           err => {
             commit("AUTH_ERROR");
           }
         )
         .catch(err => {
-            commit("AUTH_ERROR");
+          commit("AUTH_ERROR");
         });
     },
     login({ commit }, user) {
@@ -64,7 +72,7 @@ export default new Vuex.Store({
     logout({ commit }, router) {
       commit("LOGOUT");
       api.logout().then(() => {
-        router.push("/login");
+        router.push("/");
       });
     }
   }

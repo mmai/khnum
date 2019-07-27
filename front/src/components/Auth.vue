@@ -1,11 +1,11 @@
 <template>
-  <span v-if="isConnected">
+  <span v-if="fromConnected">
     {{ getUser.login }}
     <button v-on:click="logout">Logout</button>
   </span>
   <span v-else>
-      <router-link to="/invitation">Get invite</router-link>
-      <router-link to="/login">Login</router-link>
+    <router-link to="/invitation">Get invite</router-link>
+    <router-link to="/login">Login</router-link>
   </span>
 </template>
 
@@ -13,23 +13,22 @@
 export default {
   name: "Auth",
   data() {
-    return {
-    }
+    return {};
   },
   computed: {
-    isConnected() {
-      return this.$store.state.connected;
-    }, 
+    fromConnected() {
+      // return this.$store.state.connected;
+      return this.$store.getters.isConnected;
+    },
     getUser() {
       return this.$store.state.user;
-    }, 
-
+    }
   },
   props: {
     log: String
   },
   methods: {
-    logout: function () {
+    logout: function() {
       this.$store.dispatch("logout");
     }
   }
@@ -41,5 +40,4 @@ export default {
 a {
   color: #42b983;
 }
-
 </style>

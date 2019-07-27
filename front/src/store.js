@@ -72,11 +72,9 @@ export default new Vuex.Store({
           });
       });
     },
-    logout({ commit }, router) {
+    logout({ commit }) {
       commit("LOGOUT");
-      api.logout().then(() => {
-        router.push("/");
-      });
+      return api.logout();
     }
   }
 });

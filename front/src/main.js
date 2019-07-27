@@ -9,7 +9,6 @@ new Vue({
   router,
   store,
   mounted() {
-    console.log("mounted");
     store.dispatch("auth_check");
   },
   render: h => h(App)

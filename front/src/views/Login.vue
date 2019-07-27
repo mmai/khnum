@@ -15,11 +15,15 @@ export default {
       log: "",
       username: "",
       password: ""
-    }
+    };
   },
   methods: {
-    login: function () {
-      this.$store.dispatch("login", {username: this.username, password: this.password});
+    login: function() {
+      this.$store
+        .dispatch("login", { username: this.username, password: this.password })
+        .then(() => {
+          this.$router.push("/");
+        });
     }
   }
 };

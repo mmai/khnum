@@ -56,18 +56,21 @@ export default new Vuex.Store({
         });
     },
     login({ commit }, user) {
-      commit("AUTH_REQUEST");
-      api
-        .login(user)
-        .then(resp => {
-          const user = resp.data;
-          commit("AUTH_SUCCESS", { user });
-          // Vue.prototype.$http.defaults.headers.common["X-Auth-Token"] = token;
-        })
-        .catch(err => {
-          this.messageErreur = "Identifiant ou mot de passe invalide";
-          commit("AUTH_ERROR");
-        });
+      return new Promise((resolve, reject) => {
+        commit("AUTH_REQUEST");
+        api
+          .login(user)
+          .then(resp => {
+            const user = resp.data;
+            commit("AUTH_SUCCESS", { user });
+            resolve();
+          })
+          .catch(err => {
+            this.messageErreur = "Identifiant ou mot de passe invalide";
+            commit("AUTH_ERROR");
+            reject(err);
+          });
+      });
     },
     logout({ commit }, router) {
       commit("LOGOUT");

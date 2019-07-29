@@ -6,20 +6,19 @@
         <span class="font-weight-light"> An Actix + Vue experiment</span>
       </v-toolbar-title>
       <v-spacer></v-spacer>
+      <span class="mr-2">
+        <auth></auth>
+      </span>
       <v-btn
         text
         href="https://github.com/mmai/activue/releases/latest"
         target="_blank"
       >
-        <span class="mr-2">Latest Release</span>
       </v-btn>
     </v-app-bar>
 
     <v-content>
-      <div id="nav">
-        <router-link to="/">Home</router-link> |
-        <auth></auth>
-      </div>
+      <div id="nav"><router-link to="/">Home</router-link> |</div>
       <router-view />
     </v-content>
   </v-app>

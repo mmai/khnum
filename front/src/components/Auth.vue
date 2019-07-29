@@ -1,11 +1,11 @@
 <template>
   <span v-if="fromConnected">
     {{ getUser.login }}
-    <button v-on:click="logout">Logout</button>
+    <v-btn text v-on:click="logout">Logout</v-btn>
   </span>
   <span v-else>
-    <router-link to="/invitation">Get invite</router-link>
-    <router-link to="/login">Login</router-link>
+    <v-btn text to="/invitation">Get invite</v-btn>
+    <v-btn text to="/login">Login</v-btn>
   </span>
 </template>
 

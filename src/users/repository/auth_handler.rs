@@ -27,7 +27,7 @@ pub fn auth(pool: web::Data<DbPool>, login: String, password: String) -> Result<
             Err(_) => ()
         }
     }
-    Err(ServiceError::BadRequest(
+    Err(ServiceError::Unauthorized(
             "Username and Password don't match".into(),
             ))
 }
@@ -46,6 +46,6 @@ impl FromRequest for LoggedUser {
             let user: SlimUser = decode_token(&identity)?;
             return Ok(user as LoggedUser);
         }
-        Err(ServiceError::Unauthorized.into())
+        Err(ServiceError::Unauthorized("".into()).into())
     }
 }

@@ -65,6 +65,17 @@ fn test_login() {
     let user: SlimUser = response.json().wait().expect("Could not parse json"); 
     assert_eq!(user.email, String::from("email@toto.fr"));
 
+    //======== Test request with bad password
+    let bad = super::AuthData {
+        login: String::from("login"),
+        password: String::from("bad"),
+    };
+    let req = srv.post("/auth").timeout(Duration::new(15, 0));
+    let response = srv.block_on(req.send_form(&bad));
+    println!(" bad : {:#?}", response);
+    // assert!(!response.unwrap().status().is_success());
+    assert_eq!("401", response.unwrap().status().as_str());
+
     //======== Test request with unknown login
     let unknown = super::AuthData {
         login: String::from("unknown"),

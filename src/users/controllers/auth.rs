@@ -1,6 +1,7 @@
 use actix_web::middleware::identity::Identity;
 use actix_session::{CookieSession, Session};
-use actix_web::{web, Error, HttpRequest, HttpResponse, Responder, ResponseError};
+use actix_web::{web, Error, error::BlockingError, HttpRequest, HttpResponse, Responder, ResponseError};
+
 use futures::future::{Future, result};
 
 use crate::wiring::DbPool;
@@ -35,8 +36,8 @@ pub fn login(
             match res {
             Ok(user) => {
                 //Via jwt
-                let token = create_token(&user)?;
-                id.remember(token);
+                // let token = create_token(&user)?;
+                // id.remember(token);
                 //Via session cookie
                 session.set("user", &user);
                 Ok(HttpResponse::Ok().json(user))
@@ -45,10 +46,16 @@ pub fn login(
                 // }
                 // Ok(err.error_response())
             }
-            Err(err) => {
-                // panic!("{:?}", err);
-                Ok(err.error_response())
-            }
+            Err(err) => match err {
+                BlockingError::Error(service_error) => Err(service_error),
+                _ => Err(ServiceError::InternalServerError),
+            },
+            // Err(err) => {
+            //     // panic!(" the error : {:?}", err); //XXX Is this the only way to show the error ?
+            //     Err(err.into())
+            //     BlockingError::Error(service_error) => Err(service_error),
+            //     // Ok(err.error_response())
+            // }
         }})
 }
 

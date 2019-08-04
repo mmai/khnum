@@ -12,21 +12,28 @@
               <v-card-text>
                 <v-form>
                   <v-text-field
+                    v-on:focus="removeError()"
                     v-model="username"
                     label="Login"
                     name="login"
                     prepend-icon="person"
                     type="text"
+                    :error="showError()"
                   ></v-text-field>
 
                   <v-text-field
+                    v-on:focus="removeError()"
                     v-model="password"
                     id="password"
                     label="Password"
                     name="password"
                     prepend-icon="lock"
                     type="password"
+                    :error="showError()"
                   ></v-text-field>
+                  <v-alert type="error" v-show="showError()">
+                    {{ errorMessage }}
+                  </v-alert>
                 </v-form>
               </v-card-text>
               <v-card-actions>
@@ -49,15 +56,26 @@ export default {
       drawer: null,
       log: "",
       username: "",
-      password: ""
+      password: "",
+      errorMessage: ""
     };
   },
   methods: {
+    showError: function() {
+      return this.errorMessage != "";
+    },
+    removeError: function() {
+      this.errorMessage = "";
+    },
     login: function() {
       this.$store
         .dispatch("login", { username: this.username, password: this.password })
         .then(() => {
+          this.failed = false;
           this.$router.push("/");
+        })
+        .catch(err => {
+          this.errorMessage = err.response.data;
         });
     }
   }

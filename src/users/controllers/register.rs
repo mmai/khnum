@@ -31,6 +31,8 @@ pub struct CommandResult {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RequestForm {
     email: String,
+    username: String,
+    password: String,
     register_url: String
 }
 
@@ -40,14 +42,15 @@ pub fn request(
 ) -> impl Future<Item = HttpResponse, Error = ServiceError> {
     // panic!("in request ");
     let form_data = form_data.into_inner();
-    let res = check_email_available(pool.clone(), &form_data.email);
+    let res = check_existence(pool.clone(), &form_data.email, &form_data.username);
     match res {
         Ok(cde_res) => {
             if !cde_res.success {
                 result(Ok(HttpResponse::Ok().json(cde_res)))
             } else {
+                let hashed_password = hash_password(&form_data.password).expect("Error hashing password");
                 let expires_at = Local::now().naive_local() + Duration::hours(24);
-                let res = send_confirmation(form_data.email, form_data.register_url, expires_at);
+                let res = send_confirmation(form_data.username, hashed_password, form_data.email, form_data.register_url, expires_at);
                 result(Ok(HttpResponse::Ok().json(res)))
             }
         }
@@ -181,8 +184,8 @@ fn make_confirmation_data(msg: &str) -> String {
     format!("{}{}", msg, key)
 }
 
-fn send_confirmation(email: String, register_url: String, expires_at: NaiveDateTime) -> CommandResult {
-    let validate_params = format!("{}{}", email, expires_at.timestamp());
+fn send_confirmation(username: String, password: String,email: String, register_url: String, expires_at: NaiveDateTime) -> CommandResult {
+    let validate_params = format!("{}{}{}{}", username, password, email, expires_at.timestamp());
     // println!("{}{}", email, expires_at.timestamp());
 
     let sending_email = std::env::var("SENDING_EMAIL_ADDRESS")
@@ -193,7 +196,7 @@ fn send_confirmation(email: String, register_url: String, expires_at: NaiveDateT
     let confirmation_hash = hash_password(&link)
         .map(|hash| to_url(&hash))
         .expect("Error hashing link");
-    let url = format!("{}/register/{}/{}/{}/{}", base_url, confirmation_hash, to_url(&email), expires_at.timestamp(), to_url(&register_url));
+    let url = format!("{}/register/{}/{}/{}{}/{}/{}", base_url, confirmation_hash, to_url(&username), to_url(&password), to_url(&email), expires_at.timestamp(), to_url(&register_url));
     let email_body = format!(
         "Please click on the link below to complete registration. <br/>
          <a href=\"{url}\">{url}</a> <br>

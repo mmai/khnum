@@ -3,7 +3,7 @@
     <v-layout text-center wrap>
       <h1>Registration</h1>
       <p>{{ msg }}</p>
-      <v-form v-model="valid">
+      <v-form ref="form" v-model="valid">
         <v-text-field
           v-model="username"
           :rules="[rules.required]"
@@ -91,7 +91,6 @@ export default {
           // })
           .then(response => {
             this.msg = "Please check your email.";
-            this.email = "";
             console.log(response);
           })
           .catch(e => {

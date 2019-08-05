@@ -1,47 +1,58 @@
 <template>
   <v-container>
-    <v-layout text-center wrap>
-      <h1>Registration</h1>
-      <p>{{ msg }}</p>
-      <v-form v-model="valid">
-        <v-text-field
-          v-model="username"
-          :rules="[rules.required]"
-          label="Name"
-          required
-          outlined
-        ></v-text-field>
-        <v-text-field
-          v-model="email"
-          :rules="[rules.required, rules.validEmail]"
-          :type="'email'"
-          label="Email"
-          outlined
-          required
-        ></v-text-field>
-        <v-text-field
-          v-model="password"
-          :append-icon="showPassword ? 'visibility' : 'visibility_off'"
-          :rules="[rules.required]"
-          :type="showPassword ? 'text' : 'password'"
-          name="password1"
-          label="Password"
-          @click:append="showPassword = !showPassword"
-          outlined
-        ></v-text-field>
-        <v-text-field
-          v-model="passwordVerif"
-          :append-icon="showPasswordVerif ? 'visibility' : 'visibility_off'"
-          :rules="[rules.required, rules.passwordsMatch]"
-          :type="showPasswordVerif ? 'text' : 'password'"
-          label="Password verification"
-          @click:append="showPasswordVerif = !showPasswordVerif"
-          outlined
-        ></v-text-field>
-        <v-btn :disabled="!valid" color="success" @click="sendVerificationEmail"
-          >Create account</v-btn
-        >
-      </v-form>
+    <v-layout row>
+      <v-flex md12>
+        <h1>Registration</h1>
+      </v-flex>
+    </v-layout>
+    <v-layout row justify-space-around>
+      <v-flex xs12 md6>
+        <div v-if="isFormSent">
+          Almost done! Check your email to finish registration
+        </div>
+        <v-form v-else ref="form" v-model="valid">
+          <v-text-field
+            v-model="username"
+            :rules="[rules.required]"
+            label="Name"
+            required
+            outlined
+          ></v-text-field>
+          <v-text-field
+            v-model="email"
+            :rules="[rules.required, rules.validEmail]"
+            :type="'email'"
+            label="Email"
+            outlined
+            required
+          ></v-text-field>
+          <v-text-field
+            v-model="password"
+            :append-icon="showPassword ? 'visibility' : 'visibility_off'"
+            :rules="[rules.required]"
+            :type="showPassword ? 'text' : 'password'"
+            name="password1"
+            label="Password"
+            @click:append="showPassword = !showPassword"
+            outlined
+          ></v-text-field>
+          <v-text-field
+            v-model="passwordVerif"
+            :append-icon="showPasswordVerif ? 'visibility' : 'visibility_off'"
+            :rules="[rules.required, rules.passwordsMatch]"
+            :type="showPasswordVerif ? 'text' : 'password'"
+            label="Password verification"
+            @click:append="showPasswordVerif = !showPasswordVerif"
+            outlined
+          ></v-text-field>
+          <v-btn
+            :disabled="!valid"
+            color="success"
+            @click="sendVerificationEmail"
+            >Create account</v-btn
+          >
+        </v-form>
+      </v-flex>
     </v-layout>
   </v-container>
 </template>
@@ -52,6 +63,7 @@ export default {
   name: "Registration",
   data() {
     return {
+      isFormSent: false,
       valid: true,
       username: "",
       password: "",
@@ -69,9 +81,6 @@ export default {
       }
     };
   },
-  props: {
-    msg: String
-  },
   methods: {
     sendVerificationEmail: function() {
       if (this.$refs.form.validate()) {
@@ -79,7 +88,7 @@ export default {
         var baseUrl = getUrl.protocol + "//" + getUrl.host;
 
         const params = new URLSearchParams(); //This uses  form encoded
-        params.append("username", this.login);
+        params.append("username", this.username);
         params.append("password", this.password);
         params.append("email", this.email);
         params.append("register_url", baseUrl + "/#/register");
@@ -90,8 +99,7 @@ export default {
           //     email: this.email,
           // })
           .then(response => {
-            this.msg = "Please check your email.";
-            this.email = "";
+            this.isFormSent = true;
             console.log(response);
           })
           .catch(e => {

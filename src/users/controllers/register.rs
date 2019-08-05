@@ -1,4 +1,5 @@
 use actix_session::{CookieSession, Session};
+use actix_http::cookie::Cookie;
 use actix_web::{ test, web, Error, error, HttpResponse, ResponseError, http};
 use bcrypt::verify;
 use chrono::{Duration, Local, NaiveDateTime};
@@ -31,7 +32,8 @@ pub struct CommandResult {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RequestForm {
     email: String,
-    register_url: String
+    username: String,
+    password: String
 }
 
 pub fn request(
@@ -40,14 +42,16 @@ pub fn request(
 ) -> impl Future<Item = HttpResponse, Error = ServiceError> {
     // panic!("in request ");
     let form_data = form_data.into_inner();
-    let res = check_email_available(pool.clone(), &form_data.email);
+    let res = check_existence(pool.clone(), &form_data.email, &form_data.username);
     match res {
         Ok(cde_res) => {
             if !cde_res.success {
+                // panic!("{:?}", cde_res);
                 result(Ok(HttpResponse::Ok().json(cde_res)))
             } else {
+                let hashed_password = hash_password(&form_data.password).expect("Error hashing password");
                 let expires_at = Local::now().naive_local() + Duration::hours(24);
-                let res = send_confirmation(form_data.email, form_data.register_url, expires_at);
+                let res = send_confirmation(form_data.username, hashed_password, form_data.email, expires_at);
                 result(Ok(HttpResponse::Ok().json(res)))
             }
         }
@@ -57,23 +61,26 @@ pub fn request(
     }
 }
 
-// ---------------- Validate link action ------------
-pub fn validate_link( 
+// ---------------- Validate link action and finish registration ------------
+pub fn register( 
+    pool: web::Data<DbPool>,
     session: Session,
-    data: web::Path<(String, String, String, String)>, 
+    data: web::Path<(String, String, String, String, String)>, 
     ) 
     // -> impl Future<Item = HttpResponse, Error = Error> {
     -> Box<Future<Item = HttpResponse, Error = ServiceError>> {
 
     //Verify link
     let hashlink = from_url(&data.0);
-    let email = from_url(&data.1);
-    let expires_at: i64 = data.2.clone().parse().unwrap();
-    let register_url = from_url(&data.3);
-    let validate_params = format!("{}{}", email, expires_at);
+    let username = from_url(&data.1);
+    let hpasswd = from_url(&data.2);
+    let email = from_url(&data.3);
+    let expires_at: i64 = data.4.clone().parse().unwrap();
+    let validate_params = format!("{}{}{}{}", username, hpasswd, email, expires_at);
     let local_link = make_confirmation_data(&validate_params);
-    let validate_result = verify(local_link, &hashlink[..])
-        .map_err(|_err|
+
+    let validate_result = verify(local_link.clone(), &hashlink[..])
+        .map_err(|_err| 
             CommandResult { success: false, error: Some(String::from("Invalid hash link")) }
         )
         .map(|is_valid| {
@@ -84,26 +91,38 @@ pub fn validate_link(
             if expires_at < now {
                 return CommandResult { success: false, error: Some(String::from("Link validity expired")) };
             }
-            if session.set("email", email ).is_ok() {
-                // println!("email in session : {:#?}", session.get::<String>("email").expect("err while getting email from session"));
-                CommandResult { success: true, error: None }
+            
+            let check_existence_res = check_existence(pool.clone(), &email, &username).expect("error when checking existence");
+            if !check_existence_res.success {
+                check_existence_res
             } else {
-                CommandResult { success: false, error: Some(String::from("Could not save email in session")) }
+                let _user = user_handler::add(pool, email, username, hpasswd).expect("error when inserting new user");
+                CommandResult {success: true, error: None}
             }
+
         });
+
     match validate_result {
         Err(res) => Box::new(result(Ok(HttpResponse::Ok().json(res)))),
         Ok(res) => {
-            if (!res.success) {
-                Box::new(result(Ok(HttpResponse::Ok().json(res))))
+            if res.success {
+                // let _ = session.set("flashmessage", "Thank your for registering. You can now log in");
+                let cookie: Cookie = Cookie::build("action", "registerOk")
+                    // .domain("www.rust-lang.org")
+                    .path("/")
+                    .secure(true)
+                    .http_only(true)
+                    .max_age(84600)
+                    .finish();
+                Box::new(result(Ok(
+                            HttpResponse::Found()
+                            .header(http::header::LOCATION, "/")
+                            .cookie(cookie)
+                            .finish()
+                            .into_body()
+                )))
             } else {
-               Box::new(result(Ok(
-                           // HttpResponse::Ok().json(res)
-                           HttpResponse::Found()
-                           .header(http::header::LOCATION, register_url)
-                           .finish()
-                           .into_body()
-               )))
+                Box::new(result(Ok(HttpResponse::Ok().json(res))))
             }
         }
     }
@@ -114,45 +133,6 @@ pub fn validate_link(
 pub struct ValidateForm {
     username: String,
     password: String,
-}
-
-pub fn register(
-    session: Session,
-    form_data: web::Form<ValidateForm>,
-    pool: web::Data<DbPool>,
-) -> impl Future<Item = HttpResponse, Error = ServiceError> {
-// ) -> impl Future<Item = HttpResponse, Error = Error> {
-    let form_data = form_data.into_inner();
-
-    let res = {
-        let opt = session.get::<String>("email").expect("could not get session email");
-        let email = opt.unwrap();
-        let cde_res = check_existence(pool.clone(), &email, &form_data.username).expect("error when checking existence");
-        if !cde_res.success {
-            Ok(HttpResponse::Ok().json(cde_res))
-        } else {
-            let hashed_password = hash_password(&form_data.password).expect("Error hashing password");
-            let _user = user_handler::add(pool, email, form_data.username, hashed_password).expect("error when inserting new user");
-            Ok( HttpResponse::Ok().json(CommandResult {success: true, error: None}))
-        }
-    };
-    result(res)
-}
-
-fn check_email_available(pool: web::Data<DbPool>, email: &String) -> Result<CommandResult, ServiceError> {
-    let res = user_handler::email_exists(pool, email);
-    match res {
-        Ok(email_exists) => {
-            if email_exists {
-                return Ok(CommandResult {success: false, error: Some(String::from("Email already taken"))});
-            }
-            Ok(CommandResult {success: true, error: None})
-        }
-        Err(err) => {
-            println!("Error when looking unicity : {}", err);
-            Err(err)
-        }
-    }
 }
 
 fn check_existence(pool: web::Data<DbPool>, email: &String, login: &String) -> Result<CommandResult, ServiceError> {
@@ -181,19 +161,23 @@ fn make_confirmation_data(msg: &str) -> String {
     format!("{}{}", msg, key)
 }
 
-fn send_confirmation(email: String, register_url: String, expires_at: NaiveDateTime) -> CommandResult {
-    let validate_params = format!("{}{}", email, expires_at.timestamp());
+fn make_register_link(base_url: &String, username: &String, hpassword: &String, email: &String, expires_at: i64) -> String {
+    let validate_params = format!("{}{}{}{}", username, hpassword, email, expires_at);
+    let link = make_confirmation_data(&validate_params);
+    let confirmation_hash = hash_password(&link)
+        .expect("Error hashing link");
+    let url = format!("{}/register/register/{}/{}/{}/{}/{}", base_url, to_url(&confirmation_hash), to_url(&username), to_url(&hpassword), to_url(&email), expires_at);
+    url
+}
+
+fn send_confirmation(username: String, hpassword: String, email: String, expires_at: NaiveDateTime) -> CommandResult {
     // println!("{}{}", email, expires_at.timestamp());
 
     let sending_email = std::env::var("SENDING_EMAIL_ADDRESS")
         .expect("SENDING_EMAIL_ADDRESS must be set");
     let base_url = dotenv::var("BASE_URL").unwrap_or_else(|_| "localhost".to_string());
+    let url = make_register_link(&base_url, &username, &hpassword, &email, expires_at.timestamp());
     let recipient = &email[..];
-    let link = make_confirmation_data(&validate_params);
-    let confirmation_hash = hash_password(&link)
-        .map(|hash| to_url(&hash))
-        .expect("Error hashing link");
-    let url = format!("{}/register/{}/{}/{}/{}", base_url, confirmation_hash, to_url(&email), expires_at.timestamp(), to_url(&register_url));
     let email_body = format!(
         "Please click on the link below to complete registration. <br/>
          <a href=\"{url}\">{url}</a> <br>
@@ -203,7 +187,7 @@ fn send_confirmation(email: String, register_url: String, expires_at: NaiveDateT
             .format("%I:%M %p %A, %-d %B, %C%y")
             .to_string()
     );
-    // println!("{}", email_body);
+    // panic!("{}", email_body);
     // println!("{}", recipient);
 
     let email = Email::builder()

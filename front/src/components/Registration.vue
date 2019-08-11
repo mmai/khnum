@@ -79,7 +79,7 @@ export default {
         var baseUrl = getUrl.protocol + "//" + getUrl.host;
 
         const params = new URLSearchParams(); //This uses  form encoded
-        params.append("username", this.login);
+        params.append("username", this.username);
         params.append("password", this.password);
         params.append("email", this.email);
         params.append("register_url", baseUrl + "/#/register");

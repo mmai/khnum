@@ -4,7 +4,7 @@
     <v-btn text v-on:click="logout">Logout</v-btn>
   </span>
   <span v-else>
-    <v-btn text to="/invitation">Get invite</v-btn>
+    <v-btn text to="/registration">Register</v-btn>
     <v-dialog v-model="loginDialog" persistent max-width="600px">
       <template v-slot:activator="{ on }">
         <v-btn color="primary" v-on="on">Login</v-btn>

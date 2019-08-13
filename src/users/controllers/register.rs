@@ -1,4 +1,5 @@
 use actix_session::{CookieSession, Session};
+use actix_http::cookie::Cookie;
 use actix_web::{ test, web, Error, error, HttpResponse, ResponseError, http};
 use bcrypt::verify;
 use chrono::{Duration, Local, NaiveDateTime};
@@ -63,6 +64,7 @@ pub fn request(
 // ---------------- Validate link action and finish registration ------------
 pub fn register( 
     pool: web::Data<DbPool>,
+    session: Session,
     data: web::Path<(String, String, String, String, String)>, 
     ) 
     // -> impl Future<Item = HttpResponse, Error = Error> {
@@ -103,7 +105,25 @@ pub fn register(
     match validate_result {
         Err(res) => Box::new(result(Ok(HttpResponse::Ok().json(res)))),
         Ok(res) => {
-            Box::new(result(Ok(HttpResponse::Ok().json(res))))
+            if res.success {
+                // let _ = session.set("flashmessage", "Thank your for registering. You can now log in");
+                let cookie: Cookie = Cookie::build("action", "registerOk")
+                    // .domain("www.rust-lang.org")
+                    .path("/")
+                    .secure(true)
+                    .http_only(true)
+                    .max_age(84600)
+                    .finish();
+                Box::new(result(Ok(
+                            HttpResponse::Found()
+                            .header(http::header::LOCATION, "/")
+                            .cookie(cookie)
+                            .finish()
+                            .into_body()
+                )))
+            } else {
+                Box::new(result(Ok(HttpResponse::Ok().json(res))))
+            }
         }
     }
 }

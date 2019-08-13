@@ -113,12 +113,12 @@ fn test_validate() {
     // req = keep_session(response, req);
     // let form = super::ValidateForm { username:  String::from("username"), password: String::from("passwd") };
     // let mut response = srv.block_on(req.send_form(&form)).unwrap();
-    println!("{:?}", response);
-    println!("{:?}", response.status());
-    assert!(response.status().is_success());
-    let result: CommandResult = response.json().wait().expect("Could not parse json"); 
-    println!("{:?}", result);
-    assert!(result.success);
+    // println!("{:?}", response);
+    // println!("{:?}", response.status());
+    assert!(response.status().is_redirection());
+    // let result: CommandResult = response.json().wait().expect("Could not parse json"); 
+    // println!("{:?}", result);
+    // assert!(result.success);
 
     // ----------- Registering with same email should now fail
     let form_request = super::RequestForm { 

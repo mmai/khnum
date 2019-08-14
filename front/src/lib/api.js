@@ -40,7 +40,10 @@ export default {
       axios
         .post("/api/auth", params)
         .then(resp => {
-          localStorage.setItem("user", JSON.stringify(user));
+          localStorage.setItem(
+            "user",
+            JSON.stringify({ ...user, password: "-" })
+          );
           resolve(resp);
         })
         .catch(err => {

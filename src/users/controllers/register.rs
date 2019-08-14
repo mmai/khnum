@@ -107,17 +107,17 @@ pub fn register(
         Ok(res) => {
             if res.success {
                 // let _ = session.set("flashmessage", "Thank your for registering. You can now log in");
-                let cookie: Cookie = Cookie::build("action", "registerOk")
-                    // .domain("www.rust-lang.org")
-                    .path("/")
-                    .secure(true)
-                    .http_only(true)
-                    .max_age(84600)
-                    .finish();
+                // let cookie: Cookie = Cookie::build("action", "registerOk")
+                //     .domain("localhost:8080")
+                //     .path("/")
+                //     .secure(true)
+                //     .http_only(true)
+                //     .max_age(84600)
+                //     .finish();
                 Box::new(result(Ok(
                             HttpResponse::Found()
-                            .header(http::header::LOCATION, "/")
-                            .cookie(cookie)
+                            .header(http::header::LOCATION, format!("{}/", config.front_url) )
+                            // .cookie(cookie)
                             .finish()
                             .into_body()
                 )))

@@ -62,7 +62,9 @@ export default new Vuex.Store({
           .login(user)
           .then(resp => {
             const user = resp.data;
-            commit("AUTH_SUCCESS", { user });
+            commit("AUTH_SUCCESS", {
+              user: { login: user.login, password: "-" }
+            });
             resolve();
           })
           .catch(err => {

@@ -24,13 +24,14 @@ mod schema;
 
 mod users;
 
-use crate::wiring::DbPool;
+use crate::wiring::{DbPool, Config};
 
 fn main() -> std::io::Result<()> {
     dotenv().ok();
     std::env::set_var( "RUST_LOG", "activue=debug,actix_web=info,actix_server=info",);
     std::env::set_var("RUST_BACKTRACE", "1");//XXX works only for panic! macro
     env_logger::init();
+    let front_url = dotenv::var("FRONT_URL").expect("FRONT_URL must be set");
     let db_url = dotenv::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let pool = wiring::db_init(db_url);
 
@@ -40,7 +41,10 @@ fn main() -> std::io::Result<()> {
         // let domain: String = dotenv::var("DOMAIN").unwrap_or_else(|_| "localhost".to_string());
 
         App::new()
-            .data(pool.clone())
+            .data(Config { 
+                pool: pool.clone(),
+                front_url: front_url.clone()
+            })
             .wrap(Logger::default())
             .wrap(CookieSession::signed(secret.as_bytes()).secure(false))
             // .wrap(IdentityService::new(

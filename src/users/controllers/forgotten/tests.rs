@@ -12,6 +12,7 @@ use super::CommandResult;
 use diesel::prelude::*;
 use crate::schema::users::dsl;
 use crate::users::models::{SlimUser, User, NewUser};
+use crate::wiring::Config;
 
 #[test]
 fn test_request() {
@@ -25,7 +26,7 @@ fn test_request() {
             .execute(conn).expect("Error populating test database");
 
         HttpService::new(
-            App::new().data(pool.clone()).service(
+            App::new().data(Config {pool: pool.clone(), front_url: String::from("http://dummy")}).service(
                 web::resource("/user/forgotten").route(
                     web::post().to_async(users::controllers::forgotten::request)
                 )
@@ -40,7 +41,7 @@ fn test_request() {
         .timeout(Duration::new(15, 0));
 
     let mut response = srv.block_on(req.send_form(&form)).unwrap();
-    // println!("{:#?}", response);
+    println!("{:#?}", response);
     assert!(response.status().is_success());
     let result: CommandResult = response.json().wait().expect("Could not parse json"); 
     assert!(result.success);
@@ -73,7 +74,7 @@ fn test_link() {
             .execute(conn).expect("Error populating test database");
 
         HttpService::new(
-            App::new().data(pool.clone())
+            App::new().data(Config {pool: pool.clone(), front_url: String::from("http://dummy")})
             .wrap(CookieSession::signed(&[0; 32]).secure(false))
             .service( web::resource("/user/forgotten").route( // To test insertions 
                 web::post().to_async(users::controllers::forgotten::request)

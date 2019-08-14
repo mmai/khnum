@@ -9,7 +9,7 @@ use crate::errors::ServiceError;
 use crate::schema::users::dsl;
 use crate::users::models::{SlimUser, User, NewUser};
 
-pub fn add(pool: web::Data<DbPool>, email: String, login: String, password: String) -> Result<SlimUser, ServiceError> {
+pub fn add(pool: DbPool, email: String, login: String, password: String) -> Result<SlimUser, ServiceError> {
     let conn = &pool.get().unwrap();
     let user = NewUser::with_details(login, email, password);
     #[cfg(not(test))]
@@ -23,7 +23,7 @@ pub fn add(pool: web::Data<DbPool>, email: String, login: String, password: Stri
     return Ok(inserted_user.into());
 }
 
-pub fn update_password(pool: web::Data<DbPool>, login: String, password: String) -> Result<(), ServiceError> {
+pub fn update_password(pool: DbPool, login: String, password: String) -> Result<(), ServiceError> {
     let conn = pool.get().unwrap();
     #[cfg(test)]
     diesel::update(dsl::users.filter(dsl::login.eq(login)))
@@ -38,7 +38,7 @@ pub fn update_password(pool: web::Data<DbPool>, login: String, password: String)
     return Ok(());
 }
 
-pub fn email_exists(pool: web::Data<DbPool>, email: &String) -> Result<bool, ServiceError> {
+pub fn email_exists(pool: DbPool, email: &String) -> Result<bool, ServiceError> {
     use crate::schema::users::dsl;
     let conn = &pool.get().unwrap();
     // let items = dsl::users.filter( dsl::email.eq(email)).load::<User>(conn)?;
@@ -52,7 +52,7 @@ pub fn email_exists(pool: web::Data<DbPool>, email: &String) -> Result<bool, Ser
     // }
 }
 
-pub fn fetch(pool: web::Data<DbPool>, email: &String, login: &String) -> Result<Vec<SlimUser>, ServiceError> {
+pub fn fetch(pool: DbPool, email: &String, login: &String) -> Result<Vec<SlimUser>, ServiceError> {
     use crate::schema::users::dsl;
     let conn = &pool.get().unwrap();
     let items = dsl::users.filter(

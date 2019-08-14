@@ -12,6 +12,7 @@ use super::CommandResult;
 use diesel::prelude::*;
 use crate::schema::users::dsl;
 use crate::users::models::{SlimUser, User, NewUser};
+use crate::wiring::Config;
 
 #[test]
 fn test_request() {
@@ -25,7 +26,7 @@ fn test_request() {
             .execute(conn).expect("Error populating test database");
 
         HttpService::new(
-            App::new().data(pool.clone()).service(
+            App::new().data(Config {pool: pool.clone(), front_url: String::from("http://dummy")}).service(
                 web::scope("/register") // everything under '/register/' route
                     .service( web::resource("/request").route(
                         web::post().to_async(users::controllers::register::request)
@@ -85,7 +86,7 @@ fn test_validate() {
             .execute(conn).expect("Error populating test database");
 
         HttpService::new(
-            App::new().data(pool.clone())
+            App::new().data(Config {pool: pool.clone(), front_url: String::from("http://dummy")})
             .wrap(CookieSession::signed(&[0; 32]).secure(false))
             .service( web::resource("/register/request").route( // To test insertions 
                 web::post().to_async(users::controllers::register::request)

@@ -4,14 +4,14 @@ use actix_web::{middleware::identity::Identity, FromRequest};
 use bcrypt::verify;
 use diesel::prelude::*;
 
-use crate::wiring::DbPool;
+use crate::wiring::{DbPool, Config};
 
 use crate::errors::ServiceError;
 use crate::users::models::{SlimUser, User};
 use crate::users::utils::decode_token;
 use crate::wiring::MyConnection;
 
-pub fn auth(pool: web::Data<DbPool>, login: String, password: String) -> Result<SlimUser, ServiceError> {
+pub fn auth(pool: DbPool, login: String, password: String) -> Result<SlimUser, ServiceError> {
     use crate::schema::users::dsl;
     let conn: &MyConnection = &pool.get().unwrap();
 

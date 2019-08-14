@@ -13,7 +13,7 @@ use lettre::file::FileTransport;
 use lettre::smtp::authentication::{Credentials, Mechanism};
 use lettre::sendmail::SendmailTransport;
 
-use crate::wiring::DbPool;
+use crate::wiring::{DbPool, Config};
 use crate::errors::ServiceError;
 
 use crate::users::repository::user_handler;
@@ -38,11 +38,11 @@ pub struct RequestForm {
 
 pub fn request(
     form_data: web::Form<RequestForm>,
-    pool: web::Data<DbPool>,
+    config: web::Data<Config>,
 ) -> impl Future<Item = HttpResponse, Error = ServiceError> {
     // panic!("in request ");
     let form_data = form_data.into_inner();
-    let res = check_existence(pool.clone(), &form_data.email, &form_data.username);
+    let res = check_existence(config.pool.clone(), &form_data.email, &form_data.username);
     match res {
         Ok(cde_res) => {
             if !cde_res.success {
@@ -63,7 +63,7 @@ pub fn request(
 
 // ---------------- Validate link action and finish registration ------------
 pub fn register( 
-    pool: web::Data<DbPool>,
+    config: web::Data<Config>,
     session: Session,
     data: web::Path<(String, String, String, String, String)>, 
     ) 
@@ -92,11 +92,11 @@ pub fn register(
                 return CommandResult { success: false, error: Some(String::from("Link validity expired")) };
             }
             
-            let check_existence_res = check_existence(pool.clone(), &email, &username).expect("error when checking existence");
+            let check_existence_res = check_existence(config.pool.clone(), &email, &username).expect("error when checking existence");
             if !check_existence_res.success {
                 check_existence_res
             } else {
-                let _user = user_handler::add(pool, email, username, hpasswd).expect("error when inserting new user");
+                let _user = user_handler::add(config.pool.clone(), email, username, hpasswd).expect("error when inserting new user");
                 CommandResult {success: true, error: None}
             }
 
@@ -135,7 +135,7 @@ pub struct ValidateForm {
     password: String,
 }
 
-fn check_existence(pool: web::Data<DbPool>, email: &String, login: &String) -> Result<CommandResult, ServiceError> {
+fn check_existence(pool: DbPool, email: &String, login: &String) -> Result<CommandResult, ServiceError> {
     let res = user_handler::fetch(pool, email, login);
     match res {
         Ok(users) => {

@@ -19,6 +19,11 @@ pub type MyConnection = PgConnection;
 
 pub type DbPool = r2d2::Pool<r2d2::ConnectionManager<MyConnection>>;
 
+pub struct Config {
+    pub pool: DbPool,
+    pub front_url: String
+}
+
 #[cfg_attr(tarpaulin, skip)]
 pub fn db_init(db_url: String) -> DbPool {
     let manager = r2d2::ConnectionManager::<MyConnection>::new(db_url);

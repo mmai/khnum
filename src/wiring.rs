@@ -24,6 +24,10 @@ pub struct Config {
     pub front_url: String
 }
 
+pub fn make_front_url (root_url: &String, url: &str) -> String {
+    format!("{}/#{}", root_url, url)
+}
+
 #[cfg_attr(tarpaulin, skip)]
 pub fn db_init(db_url: String) -> DbPool {
     let manager = r2d2::ConnectionManager::<MyConnection>::new(db_url);

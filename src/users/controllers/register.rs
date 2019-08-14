@@ -13,7 +13,7 @@ use lettre::file::FileTransport;
 use lettre::smtp::authentication::{Credentials, Mechanism};
 use lettre::sendmail::SendmailTransport;
 
-use crate::wiring::{DbPool, Config};
+use crate::wiring::{DbPool, Config, make_front_url};
 use crate::errors::ServiceError;
 
 use crate::users::repository::user_handler;
@@ -116,7 +116,7 @@ pub fn register(
                 //     .finish();
                 Box::new(result(Ok(
                             HttpResponse::Found()
-                            .header(http::header::LOCATION, format!("{}/", config.front_url) )
+                            .header(http::header::LOCATION, make_front_url(&config.front_url, "/login?action=registerOk") )
                             // .cookie(cookie)
                             .finish()
                             .into_body()

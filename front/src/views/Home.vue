@@ -17,6 +17,9 @@
         <p class="subheading font-weight-regular">
           An example of using Actix with Vue (+ vuex & vuetify)
         </p>
+        <h2>
+          {{ message }}
+        </h2>
       </v-flex>
     </v-layout>
   </v-container>
@@ -24,6 +27,19 @@
 
 <script>
 export default {
-  name: "home"
+  name: "home",
+  props: {
+    action: String
+  },
+  computed: {
+    message() {
+      switch (this.action) {
+        case "registerOk":
+          return "Your acount has been created, you can now log in with your username and password.";
+        default:
+          return "";
+      }
+    }
+  }
 };
 </script>

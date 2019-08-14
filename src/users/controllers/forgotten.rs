@@ -12,7 +12,7 @@ use lettre::file::FileTransport;
 use lettre::smtp::authentication::{Credentials, Mechanism};
 use lettre::sendmail::SendmailTransport;
 
-use crate::wiring::DbPool;
+use crate::wiring::{DbPool, Config};
 use crate::errors::ServiceError;
 
 use crate::users::repository::user_handler;
@@ -35,11 +35,11 @@ pub struct RequestForm {
 
 pub fn request(
     form_data: web::Form<RequestForm>,
-    pool: web::Data<DbPool>,
+    config: web::Data<Config>
 ) -> impl Future<Item = HttpResponse, Error = ServiceError> {
     let form_data = form_data.into_inner();
 
-    let email_exists = user_handler::email_exists(pool.clone(), &form_data.email).expect("error when checking email");
+    let email_exists = user_handler::email_exists(config.pool.clone(), &form_data.email).expect("error when checking email");
     if !email_exists {
         let cde_res = CommandResult {success: false, error: Some(String::from("Email does not exists"))};
         result(Ok(HttpResponse::Ok().json(cde_res)))
@@ -99,7 +99,7 @@ pub struct PasswordForm {
 pub fn change_password(
     session: Session,
     form_data: web::Form<PasswordForm>,
-    pool: web::Data<DbPool>,
+    config: web::Data<Config>,
 // ) -> impl Future<Item = HttpResponse, Error = ServiceError> {
 ) -> impl Future<Item = HttpResponse, Error = ServiceError> {
     let form_data = form_data.into_inner();
@@ -107,12 +107,12 @@ pub fn change_password(
     let res = {
         let opt = session.get::<String>("email").expect("could not get session email");
         let email = opt.unwrap();
-        let email_exists = user_handler::email_exists(pool.clone(), &email).expect("error when checking email");
+        let email_exists = user_handler::email_exists(config.pool.clone(), &email).expect("error when checking email");
         if !email_exists {
             let cde_res = CommandResult {success: false, error: Some(String::from("Email does not exists"))};
             Ok(HttpResponse::Ok().json(cde_res))
         } else {
-            let _user = user_handler::update_password(pool, email, form_data.password).expect("error when updating password");
+            let _user = user_handler::update_password(config.pool.clone(), email, form_data.password).expect("error when updating password");
             Ok( HttpResponse::Ok().json(CommandResult {success: true, error: None}))
         }
     };

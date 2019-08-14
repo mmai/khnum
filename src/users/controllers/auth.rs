@@ -4,7 +4,7 @@ use actix_web::{web, Error, error::BlockingError, HttpRequest, HttpResponse, Res
 
 use futures::future::{Future, result};
 
-use crate::wiring::DbPool;
+use crate::wiring::{DbPool, Config};
 use crate::errors::ServiceError;
 
 use crate::users::repository::auth_handler;
@@ -27,11 +27,11 @@ pub fn login(
     auth_data: web::Form<AuthData>,
     session: Session,
     id: Identity,
-    db: web::Data<DbPool>,
+    config: web::Data<Config>,
     ) -> impl Future<Item = HttpResponse, Error = ServiceError> {
     let data: AuthData = auth_data.into_inner();
 
-    web::block( move || auth_handler::auth(db, data.login, data.password))
+    web::block( move || auth_handler::auth(config.pool.clone(), data.login, data.password))
         .then(move |res| { 
             match res {
             Ok(user) => {

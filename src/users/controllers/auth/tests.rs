@@ -12,6 +12,7 @@ use diesel::prelude::*;
 use crate::schema::users::dsl;
 use crate::users::models::{SlimUser, User, NewUser};
 use crate::users::utils::{hash_password};
+use crate::wiring::Config;
 
 #[test]
 fn test_login() {
@@ -26,7 +27,7 @@ fn test_login() {
             .execute(conn).expect("Error populating test database");
 
         HttpService::new(
-            App::new().data(pool.clone())
+            App::new().data(Config {pool: pool.clone(), front_url: String::from("http://dummy")})
             .wrap(CookieSession::signed(&[0; 32]).secure(false))
             .service( web::resource("/auth") // routes for authentication
                       .route(web::post().to_async(users::controllers::auth::login))
@@ -108,7 +109,7 @@ fn test_logout() {
             .execute(conn).expect("Error populating test database");
 
         HttpService::new(
-            App::new().data(pool.clone())
+            App::new().data(Config {pool: pool.clone(), front_url: String::from("http://dummy")})
             .wrap(CookieSession::signed(&[0; 32]).secure(false))
             .service( web::resource("/auth") // routes for authentication
                       .route(web::post().to_async(users::controllers::auth::login))

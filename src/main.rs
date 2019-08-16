@@ -18,6 +18,9 @@ use chrono::Duration;
 use diesel::{r2d2::ConnectionManager};
 use dotenv::dotenv;
 
+use actix_i18n::Translations;
+use gettext_macros::{compile_i18n, include_i18n, init_i18n};
+
 mod wiring;
 mod errors;
 mod schema;
@@ -25,6 +28,8 @@ mod schema;
 mod users;
 
 use crate::wiring::{DbPool, Config};
+
+init_i18n!("activue", en, fr);
 
 fn main() -> std::io::Result<()> {
     dotenv().ok();
@@ -88,3 +93,5 @@ fn main() -> std::io::Result<()> {
     .bind("127.0.0.1:8000")?
     .run()
 }
+
+compile_i18n!();

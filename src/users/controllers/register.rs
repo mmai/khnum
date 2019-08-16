@@ -20,6 +20,8 @@ use crate::users::repository::user_handler;
 use crate::users::models::{SlimUser, User};
 use crate::users::utils::{hash_password, to_url, from_url};
 
+use actix_i18n::I18n;
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CommandResult {
     success: bool,
@@ -39,6 +41,7 @@ pub struct RequestForm {
 pub fn request(
     form_data: web::Form<RequestForm>,
     config: web::Data<Config>,
+    i18n: I18n
 ) -> impl Future<Item = HttpResponse, Error = ServiceError> {
     // panic!("in request ");
     let form_data = form_data.into_inner();
@@ -51,7 +54,7 @@ pub fn request(
             } else {
                 let hashed_password = hash_password(&form_data.password).expect("Error hashing password");
                 let expires_at = Local::now().naive_local() + Duration::hours(24);
-                let res = send_confirmation(form_data.username, hashed_password, form_data.email, expires_at);
+                let res = send_confirmation(&i18n.catalog, form_data.username, hashed_password, form_data.email, expires_at);
                 result(Ok(HttpResponse::Ok().json(res)))
             }
         }
@@ -170,7 +173,7 @@ fn make_register_link(base_url: &String, username: &String, hpassword: &String, 
     url
 }
 
-fn send_confirmation(username: String, hpassword: String, email: String, expires_at: NaiveDateTime) -> CommandResult {
+fn send_confirmation(catalog: &Catalog, username: String, hpassword: String, email: String, expires_at: NaiveDateTime) -> CommandResult {
     // println!("{}{}", email, expires_at.timestamp());
 
     let sending_email = std::env::var("SENDING_EMAIL_ADDRESS")
@@ -179,9 +182,11 @@ fn send_confirmation(username: String, hpassword: String, email: String, expires
     let url = make_register_link(&base_url, &username, &hpassword, &email, expires_at.timestamp());
     let recipient = &email[..];
     let email_body = format!(
-        "Please click on the link below to complete registration. <br/>
+        "{msg_click}. <br/>
          <a href=\"{url}\">{url}</a> <br>
-         your Invitation expires on <strong>{date}</strong>",
+        {msg_expire}  <strong>{date}</strong>",
+         msg_click = i18n!(catalog, "Please click on the link below to complete registration"),
+         msg_expire = i18n!(catalog, "your Invitation expires on"),
          url = url,
          date = expires_at
             .format("%I:%M %p %A, %-d %B, %C%y")

@@ -1,3 +1,4 @@
+#![feature(proc_macro_hygiene)]
 #![allow(unused_imports)]
 
 #[macro_use] extern crate diesel;
@@ -50,6 +51,7 @@ fn main() -> std::io::Result<()> {
                 pool: pool.clone(),
                 front_url: front_url.clone()
             })
+            .data(managed_state())
             .wrap(Logger::default())
             .wrap(CookieSession::signed(secret.as_bytes()).secure(false))
             // .wrap(IdentityService::new(
@@ -92,6 +94,10 @@ fn main() -> std::io::Result<()> {
     })
     .bind("127.0.0.1:8000")?
     .run()
+}
+
+pub fn managed_state() -> Translations {
+    include_i18n!()
 }
 
 compile_i18n!();

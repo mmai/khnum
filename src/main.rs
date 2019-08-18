@@ -26,11 +26,11 @@ mod wiring;
 mod errors;
 mod schema;
 
-mod users;
-
 use crate::wiring::{DbPool, Config};
 
-init_i18n!("activue", en, fr);
+init_i18n!("activue", en, fr); // Put this before modules containing messages to be translated
+
+mod users;
 
 fn main() -> std::io::Result<()> {
     dotenv().ok();

@@ -11,11 +11,25 @@
       </v-flex>
 
       <v-flex mb-4>
-        <h1 class="display-2 font-weight-bold mb-3">
+        <h1 class="display-2 font-weight-bold mb-3" v-translate>
           Welcome to Activue
         </h1>
-        <p class="subheading font-weight-regular">
-          An example of using Actix with Vue (+ vuex & vuetify)
+        <div>
+          <select name="language" v-model="$language.current">
+            <option
+              v-bind:key="key"
+              v-for="(language, key) in $language.available"
+              :value="key"
+              >{{ language }}</option
+            >
+          </select>
+        </div>
+        <p>
+          An
+          <translate translate-comment="commentaire exemple"
+            >example of using</translate
+          >
+          Actix with Vue (+ vuex & vuetify)
         </p>
         <h2>
           {{ message }}

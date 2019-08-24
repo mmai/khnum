@@ -6,14 +6,23 @@ import router from "./router";
 import store from "./store";
 import vuetify from "./plugins/vuetify";
 
+// Initialize i18n
+let availableLanguages = {
+  en_US: "American English",
+  fr_FR: "Français"
+};
+let defaultLanguage = "en_US";
+let navigatorLanguage = navigator.language.replace("-", "_");
+if (Object.keys(availableLanguages).indexOf(navigatorLanguage) > -1) {
+  defaultLanguage = navigatorLanguage;
+}
+
 Vue.use(GetTextPlugin, {
-  availableLanguages: {
-    en_US: "American English",
-    fr_FR: "Français"
-  },
-  defaultLanguage: "fr_FR",
-  translations: translations
+  availableLanguages,
+  defaultLanguage,
+  translations
 });
+
 Vue.config.productionTip = false;
 
 new Vue({

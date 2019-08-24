@@ -70,7 +70,7 @@ pub fn get_me(
     // logged_user: auth_handler::LoggedUser
     ) -> HttpResponse {
     // ) -> impl Future<Item = HttpResponse, Error = Error> {
-        let opt = session.get::<models::SlimUser>("user").expect("could not get session user");
+        let opt = session.get::<models::User>("user").expect("could not get session user");
         match opt {
             // Ok(user) => Ok(HttpResponse::Ok().json(user)),
             // Err(err) => Ok(err.error_response())

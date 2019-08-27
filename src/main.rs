@@ -32,6 +32,14 @@ init_i18n!("activue", en, fr); // Put this before modules containing messages to
 
 mod users;
 
+// fn hello(
+//     session: Session,
+//     i18n: I18n
+//     ) -> HttpResponse {
+//          let msg_expire = i18n!(&i18n.catalog, "your Invitation expires on");
+//          HttpResponse::Ok().json(msg_expire)
+// }
+
 fn main() -> std::io::Result<()> {
     dotenv().ok();
     std::env::set_var( "RUST_LOG", "activue=debug,actix_web=info,actix_server=info",);
@@ -89,6 +97,9 @@ fn main() -> std::io::Result<()> {
                   //         web::post().to_async(users::controllers::register::register)
                   // ))
             )
+            // .service( web::resource("/hello").route(
+            //         web::get().to(hello)
+            // ))
             // serve static files
             .service(fs::Files::new("/", "./static/").index_file("index.html"))
     })

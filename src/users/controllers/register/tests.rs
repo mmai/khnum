@@ -28,7 +28,7 @@ fn test_request() {
         let pool = crate::wiring::test_conn_init();
         //Insert test data 
         let conn = &pool.get().unwrap();
-        let user = NewUser::with_details(String::from("login"), String::from("email@toto.fr"), String::from("password"));
+        let user = NewUser::with_details(String::from("login"), String::from("email@toto.fr"), String::from("password"), String::from("fr_FR"));
         diesel::insert_into(dsl::users).values(&user)
             .execute(conn).expect("Error populating test database");
 
@@ -87,7 +87,7 @@ fn test_validate() {
         let pool = crate::wiring::test_conn_init();
         //Insert test data 
         let conn = &pool.get().unwrap();
-        let user = NewUser::with_details(String::from("login"), String::from("email@toto.fr"), String::from("password"));
+        let user = NewUser::with_details(String::from("login"), String::from("email@toto.fr"), String::from("password"), String::from("fr_FR"));
         // Batch don't work with Sqlite 
         // diesel::insert_into(dsl::users).values(&vec![user, user_expired])
             // .execute(conn).expect("Error populating test database");

@@ -69,6 +69,7 @@ pub fn request(
 pub fn register( 
     config: web::Data<Config>,
     session: Session,
+    i18n: I18n,
     data: web::Path<(String, String, String, String, String)>, 
     ) 
     // -> impl Future<Item = HttpResponse, Error = Error> {
@@ -100,7 +101,7 @@ pub fn register(
             if !check_existence_res.success {
                 check_existence_res
             } else {
-                let _user = user_handler::add(config.pool.clone(), email, username, hpasswd).expect("error when inserting new user");
+                let _user = user_handler::add(config.pool.clone(), email, username, hpasswd, &i18n.lang).expect("error when inserting new user");
                 CommandResult {success: true, error: None}
             }
 
@@ -120,7 +121,7 @@ pub fn register(
                 //     .finish();
                 Box::new(result(Ok(
                             HttpResponse::Found()
-                            .header(http::header::LOCATION, make_front_url(&config.front_url, "/login?action=registerOk") )
+                            .header(http::header::LOCATION, make_front_url(&config.front_url, "/?action=registerOk") )
                             // .cookie(cookie)
                             .finish()
                             .into_body()

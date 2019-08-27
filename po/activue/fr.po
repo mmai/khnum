@@ -1,0 +1,21 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: activue\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-06-15 16:33-0700\n"
+"PO-Revision-Date: 2018-06-15 16:33-0700\n"
+"Last-Translator: Automatically generated\n"
+"Language-Team: none\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+# src/users/controllers/register.rs:189
+msgid "Please click on the link below to complete registration"
+msgstr "Veuillez cliquer sur le lien suivant pour confirmer votre inscription"
+
+# src/users/controllers/register.rs:190
+msgid "your Invitation expires on"
+msgstr "votre invitation expire le"

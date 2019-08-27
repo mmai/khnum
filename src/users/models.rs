@@ -26,12 +26,12 @@ pub struct NewUser {
 }
 
 impl NewUser {
-    pub fn with_details(login: String, email: String, password: String) -> Self {
+    pub fn with_details(login: String, email: String, password: String, language: String) -> Self {
         NewUser {
             login,
             email,
             password,
-            language: String::from("en_US"),
+            language,
             created_at: Local::now().naive_local(),
         }
     }
@@ -54,7 +54,7 @@ impl From<User> for SlimUser {
 
 #[test]
 fn user_with_details() {
-    let u = NewUser::with_details(String::from("login"), String::from("email@toto.fr"), String::from("pass"));
+    let u = NewUser::with_details(String::from("login"), String::from("email@toto.fr"), String::from("pass"), String::from("fr_FR"));
 
     assert_eq!(u.login , String::from("login"));
 }

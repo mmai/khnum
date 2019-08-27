@@ -22,7 +22,7 @@ fn test_login() {
         //Insert test data 
         let conn = &pool.get().unwrap();
         let hashed_password = hash_password("password").expect("Error hashing password");
-        let user = NewUser::with_details(String::from("login"), String::from("email@toto.fr"), hashed_password);
+        let user = NewUser::with_details(String::from("login"), String::from("email@toto.fr"), hashed_password, String::from("fr_FR"));
         diesel::insert_into(dsl::users).values(&user)
             .execute(conn).expect("Error populating test database");
 
@@ -104,7 +104,7 @@ fn test_logout() {
         //Insert test data 
         let conn = &pool.get().unwrap();
         let hashed_password = hash_password("password").expect("Error hashing password");
-        let user = NewUser::with_details(String::from("login"), String::from("email@toto.fr"), hashed_password);
+        let user = NewUser::with_details(String::from("login"), String::from("email@toto.fr"), hashed_password, String::from("fr_FR"));
         diesel::insert_into(dsl::users).values(&user)
             .execute(conn).expect("Error populating test database");
 

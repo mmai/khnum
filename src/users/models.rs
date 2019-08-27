@@ -12,6 +12,7 @@ pub struct User {
     pub login: String,
     pub password: String,
     pub created_at: NaiveDateTime,
+    pub language: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Insertable)]
@@ -20,6 +21,7 @@ pub struct NewUser {
     pub login: String,
     pub email: String,
     pub password: String,
+    pub language: String,
     pub created_at: NaiveDateTime,
 }
 
@@ -29,6 +31,7 @@ impl NewUser {
             login,
             email,
             password,
+            language: String::from("en_US"),
             created_at: Local::now().naive_local(),
         }
     }
@@ -64,6 +67,7 @@ fn slim_from_user() {
         email: "email@toto.fr".into(),
         password: "pass".into(),
         created_at: Local::now().naive_local(),
+        language: "en_US".into(),
     };
     let s:SlimUser = u.into();
     assert_eq!(SlimUser { login: "login".into(), email: "email@toto.fr".into() }, s);

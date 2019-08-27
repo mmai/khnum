@@ -53,7 +53,7 @@ fn test_login() {
     let mut response = srv.block_on(req.send_form(&form)).unwrap();
         // srv.block_on(req.send_body(r#"{"login":"login","password":"12345678"}"#)).unwrap();
     assert!(response.status().is_success());
-    let user: SlimUser = response.json().wait().expect("Could not parse json"); 
+    let user: User = response.json().wait().expect("Could not parse json"); 
     assert_eq!(user.email, String::from("email@toto.fr"));
     // let result: CommandResult = response.json().wait().expect("Could not parse json"); 
     // assert!(result.success);
@@ -63,7 +63,7 @@ fn test_login() {
     let mut response = srv.block_on(req.send()).unwrap();
     // println!("get me : {:#?}", response);
     assert!(response.status().is_success());
-    let user: SlimUser = response.json().wait().expect("Could not parse json"); 
+    let user: User = response.json().wait().expect("Could not parse json"); 
     assert_eq!(user.email, String::from("email@toto.fr"));
 
     //======== Test request with bad password

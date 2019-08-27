@@ -22,6 +22,9 @@ export default new Vuex.Store({
       state.status = "success";
       state.user = payload.user;
       state.connected = true;
+      if (state.user.language) {
+        Vue.config.language = state.user.language;
+      }
     },
     AUTH_ERROR(state) {
       state.status = "error";
@@ -63,7 +66,8 @@ export default new Vuex.Store({
           .then(resp => {
             const user = resp.data;
             commit("AUTH_SUCCESS", {
-              user: { login: user.login, password: "-" }
+              // user: { login: user.login, password: "-" }
+              user: user
             });
             resolve();
           })

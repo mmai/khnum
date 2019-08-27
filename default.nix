@@ -1,5 +1,7 @@
 with import <nixpkgs> { };
 
+# troubleshooting : if error libmariadb.so.x not found => reinstall diesel_cli (cargo install diesel_cli)
+
 stdenv.mkDerivation rec {
   name = "activue-${version}";
   version = "0.1.0";

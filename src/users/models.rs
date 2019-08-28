@@ -38,6 +38,23 @@ impl NewUser {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct FrontUser {
+    pub email: String,
+    pub login: String,
+    pub language: String,
+}
+impl From<User> for FrontUser {
+    fn from(user: User) -> Self {
+        FrontUser { 
+            login: user.login,
+            email: user.email,
+            language: user.language,
+        }
+    }
+}
+
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct SlimUser {
     pub login: String,
     pub email: String,
@@ -71,4 +88,18 @@ fn slim_from_user() {
     };
     let s:SlimUser = u.into();
     assert_eq!(SlimUser { login: "login".into(), email: "email@toto.fr".into() }, s);
+}
+
+#[test]
+fn front_from_user() {
+    let u = User {
+        id: 1,
+        login: "login".into(),
+        email: "email@toto.fr".into(),
+        password: "pass".into(),
+        created_at: Local::now().naive_local(),
+        language: "en_US".into(),
+    };
+    let s:FrontUser = u.into();
+    assert_eq!(FrontUser { login: "login".into(), email: "email@toto.fr".into(), language: "en_US".into() }, s);
 }

@@ -40,7 +40,7 @@ pub fn login(
                 // id.remember(token);
                 //Via session cookie
                 session.set("user", &user);
-                Ok(HttpResponse::Ok().json(user))
+                Ok(HttpResponse::Ok().json(models::FrontUser::from(user)))
                 // if session.set("user", &user).is_ok() {
                 //     Ok(HttpResponse::Ok().json(user))
                 // }
@@ -74,7 +74,7 @@ pub fn get_me(
         match opt {
             // Ok(user) => Ok(HttpResponse::Ok().json(user)),
             // Err(err) => Ok(err.error_response())
-            Some(user) => HttpResponse::Ok().json(user),
+            Some(user) => HttpResponse::Ok().json(models::FrontUser::from(user)),
             None => HttpResponse::Unauthorized().json("Unauthorized")
         }
         // let user = opt.unwrap();

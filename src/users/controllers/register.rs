@@ -20,6 +20,10 @@ use crate::users::repository::user_handler;
 use crate::users::models::{SlimUser, User};
 use crate::users::utils::{hash_password, to_url, from_url};
 
+use actix_i18n::I18n;
+use gettext::Catalog;
+use gettext_macros::i18n;
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CommandResult {
     success: bool,
@@ -39,19 +43,19 @@ pub struct RequestForm {
 pub fn request(
     form_data: web::Form<RequestForm>,
     config: web::Data<Config>,
+    i18n: I18n
 ) -> impl Future<Item = HttpResponse, Error = ServiceError> {
-    // panic!("in request ");
     let form_data = form_data.into_inner();
     let res = check_existence(config.pool.clone(), &form_data.email, &form_data.username);
     match res {
         Ok(cde_res) => {
             if !cde_res.success {
-                // panic!("{:?}", cde_res);
                 result(Ok(HttpResponse::Ok().json(cde_res)))
             } else {
                 let hashed_password = hash_password(&form_data.password).expect("Error hashing password");
                 let expires_at = Local::now().naive_local() + Duration::hours(24);
-                let res = send_confirmation(form_data.username, hashed_password, form_data.email, expires_at);
+                // panic!(" avant send_confirmation");
+                let res = send_confirmation(&i18n.catalog, form_data.username, hashed_password, form_data.email, expires_at);
                 result(Ok(HttpResponse::Ok().json(res)))
             }
         }
@@ -65,6 +69,7 @@ pub fn request(
 pub fn register( 
     config: web::Data<Config>,
     session: Session,
+    i18n: I18n,
     data: web::Path<(String, String, String, String, String)>, 
     ) 
     // -> impl Future<Item = HttpResponse, Error = Error> {
@@ -96,7 +101,7 @@ pub fn register(
             if !check_existence_res.success {
                 check_existence_res
             } else {
-                let _user = user_handler::add(config.pool.clone(), email, username, hpasswd).expect("error when inserting new user");
+                let _user = user_handler::add(config.pool.clone(), email, username, hpasswd, &i18n.lang).expect("error when inserting new user");
                 CommandResult {success: true, error: None}
             }
 
@@ -116,7 +121,7 @@ pub fn register(
                 //     .finish();
                 Box::new(result(Ok(
                             HttpResponse::Found()
-                            .header(http::header::LOCATION, make_front_url(&config.front_url, "/login?action=registerOk") )
+                            .header(http::header::LOCATION, make_front_url(&config.front_url, "/?action=registerOk") )
                             // .cookie(cookie)
                             .finish()
                             .into_body()
@@ -170,8 +175,8 @@ fn make_register_link(base_url: &String, username: &String, hpassword: &String, 
     url
 }
 
-fn send_confirmation(username: String, hpassword: String, email: String, expires_at: NaiveDateTime) -> CommandResult {
-    // println!("{}{}", email, expires_at.timestamp());
+fn send_confirmation(catalog: &Catalog, username: String, hpassword: String, email: String, expires_at: NaiveDateTime) -> CommandResult {
+    println!("{}{}", email, expires_at.timestamp());
 
     let sending_email = std::env::var("SENDING_EMAIL_ADDRESS")
         .expect("SENDING_EMAIL_ADDRESS must be set");
@@ -179,9 +184,11 @@ fn send_confirmation(username: String, hpassword: String, email: String, expires
     let url = make_register_link(&base_url, &username, &hpassword, &email, expires_at.timestamp());
     let recipient = &email[..];
     let email_body = format!(
-        "Please click on the link below to complete registration. <br/>
+        "{msg_click}. <br/>
          <a href=\"{url}\">{url}</a> <br>
-         your Invitation expires on <strong>{date}</strong>",
+        {msg_expire}  <strong>{date}</strong>",
+         msg_click = i18n!(catalog, "Please click on the link below to complete registration"), 
+         msg_expire = i18n!(catalog, "your Invitation expires on"),
          url = url,
          date = expires_at
             .format("%I:%M %p %A, %-d %B, %C%y")

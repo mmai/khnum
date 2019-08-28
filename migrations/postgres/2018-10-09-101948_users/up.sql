@@ -1,4 +1,3 @@
--- Your SQL goes here
 CREATE TABLE users (
   id SERIAL PRIMARY KEY,
   email VARCHAR(100) NOT NULL UNIQUE,

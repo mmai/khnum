@@ -14,6 +14,13 @@ use crate::schema::users::dsl;
 use crate::users::models::{SlimUser, User, NewUser};
 use crate::wiring::Config;
 
+use actix_i18n::Translations;
+use gettext_macros::include_i18n;
+
+pub fn managed_state() -> Translations {
+    include_i18n!()
+}
+
 #[test]
 fn test_request() {
     dotenv().ok();
@@ -21,12 +28,14 @@ fn test_request() {
         let pool = crate::wiring::test_conn_init();
         //Insert test data 
         let conn = &pool.get().unwrap();
-        let user = NewUser::with_details(String::from("login"), String::from("email@toto.fr"), String::from("password"));
+        let user = NewUser::with_details(String::from("login"), String::from("email@toto.fr"), String::from("password"), String::from("fr_FR"));
         diesel::insert_into(dsl::users).values(&user)
             .execute(conn).expect("Error populating test database");
 
         HttpService::new(
-            App::new().data(Config {pool: pool.clone(), front_url: String::from("http://dummy")}).service(
+            App::new()
+            .data(managed_state())
+            .data(Config {pool: pool.clone(), front_url: String::from("http://dummy")}).service(
                 web::scope("/register") // everything under '/register/' route
                     .service( web::resource("/request").route(
                         web::post().to_async(users::controllers::register::request)
@@ -48,7 +57,7 @@ fn test_request() {
         // .header( http::header::CONTENT_TYPE, http::header::HeaderValue::from_static("application/json"),);
 
     let mut response = srv.block_on(req.send_form(&form)).unwrap();
-    // println!("{:#?}", response);
+    println!("{:#?}", response);
     assert!(response.status().is_success());
     let result: CommandResult = response.json().wait().expect("Could not parse json"); 
     assert!(result.success);
@@ -78,7 +87,7 @@ fn test_validate() {
         let pool = crate::wiring::test_conn_init();
         //Insert test data 
         let conn = &pool.get().unwrap();
-        let user = NewUser::with_details(String::from("login"), String::from("email@toto.fr"), String::from("password"));
+        let user = NewUser::with_details(String::from("login"), String::from("email@toto.fr"), String::from("password"), String::from("fr_FR"));
         // Batch don't work with Sqlite 
         // diesel::insert_into(dsl::users).values(&vec![user, user_expired])
             // .execute(conn).expect("Error populating test database");
@@ -86,7 +95,9 @@ fn test_validate() {
             .execute(conn).expect("Error populating test database");
 
         HttpService::new(
-            App::new().data(Config {pool: pool.clone(), front_url: String::from("http://dummy")})
+            App::new()
+            .data(managed_state())
+            .data(Config {pool: pool.clone(), front_url: String::from("http://dummy")})
             .wrap(CookieSession::signed(&[0; 32]).secure(false))
             .service( web::resource("/register/request").route( // To test insertions 
                 web::post().to_async(users::controllers::register::request)
@@ -129,7 +140,7 @@ fn test_validate() {
     };
     let req_request = srv.post("/register/request").timeout(Duration::new(15, 0));
     let mut response = srv.block_on(req_request.send_form(&form_request)).unwrap();
-    // println!("response : {:#?}", response);
+    println!("response : {:#?}", response);
     assert!(response.status().is_success());
     let result: CommandResult = response.json().wait().expect("Could not parse json"); 
     assert!(!result.success);

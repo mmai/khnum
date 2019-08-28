@@ -21,7 +21,7 @@ fn test_request() {
         let pool = crate::wiring::test_conn_init();
         //Insert test data 
         let conn = &pool.get().unwrap();
-        let user = NewUser::with_details(String::from("login"), String::from("email@toto.fr"), String::from("password"));
+        let user = NewUser::with_details(String::from("login"), String::from("email@toto.fr"), String::from("password"), String::from("fr_FR"));
         diesel::insert_into(dsl::users).values(&user)
             .execute(conn).expect("Error populating test database");
 
@@ -69,7 +69,7 @@ fn test_link() {
         let pool = crate::wiring::test_conn_init();
         //Insert test data 
         let conn = &pool.get().unwrap();
-        let user = NewUser::with_details(String::from("login"), String::from("email@test.fr"), String::from("password"));
+        let user = NewUser::with_details(String::from("login"), String::from("email@test.fr"), String::from("password"), String::from("fr_FR"));
         diesel::insert_into(dsl::users).values(&user)
             .execute(conn).expect("Error populating test database");
 

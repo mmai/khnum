@@ -10,7 +10,7 @@ use futures::future::Future;
 
 use diesel::prelude::*;
 use crate::schema::users::dsl;
-use crate::users::models::{SlimUser, User, NewUser};
+use crate::users::models::{FrontUser, User, NewUser};
 use crate::users::utils::{hash_password};
 use crate::wiring::Config;
 
@@ -22,7 +22,7 @@ fn test_login() {
         //Insert test data 
         let conn = &pool.get().unwrap();
         let hashed_password = hash_password("password").expect("Error hashing password");
-        let user = NewUser::with_details(String::from("login"), String::from("email@toto.fr"), hashed_password);
+        let user = NewUser::with_details(String::from("login"), String::from("email@toto.fr"), hashed_password, String::from("fr_FR"));
         diesel::insert_into(dsl::users).values(&user)
             .execute(conn).expect("Error populating test database");
 
@@ -53,8 +53,10 @@ fn test_login() {
     let mut response = srv.block_on(req.send_form(&form)).unwrap();
         // srv.block_on(req.send_body(r#"{"login":"login","password":"12345678"}"#)).unwrap();
     assert!(response.status().is_success());
-    let user: SlimUser = response.json().wait().expect("Could not parse json"); 
+    let user: FrontUser = response.json().wait().expect("Could not parse json"); 
     assert_eq!(user.email, String::from("email@toto.fr"));
+    let parse_user: Result<User, awc::error::JsonPayloadError> = response.json().wait();
+    assert!(parse_user.is_err());
     // let result: CommandResult = response.json().wait().expect("Could not parse json"); 
     // assert!(result.success);
     //should get user email
@@ -63,7 +65,7 @@ fn test_login() {
     let mut response = srv.block_on(req.send()).unwrap();
     // println!("get me : {:#?}", response);
     assert!(response.status().is_success());
-    let user: SlimUser = response.json().wait().expect("Could not parse json"); 
+    let user: FrontUser = response.json().wait().expect("Could not parse json"); 
     assert_eq!(user.email, String::from("email@toto.fr"));
 
     //======== Test request with bad password
@@ -104,7 +106,7 @@ fn test_logout() {
         //Insert test data 
         let conn = &pool.get().unwrap();
         let hashed_password = hash_password("password").expect("Error hashing password");
-        let user = NewUser::with_details(String::from("login"), String::from("email@toto.fr"), hashed_password);
+        let user = NewUser::with_details(String::from("login"), String::from("email@toto.fr"), hashed_password, String::from("fr_FR"));
         diesel::insert_into(dsl::users).values(&user)
             .execute(conn).expect("Error populating test database");
 

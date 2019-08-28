@@ -9,9 +9,9 @@ use crate::errors::ServiceError;
 use crate::schema::users::dsl;
 use crate::users::models::{SlimUser, User, NewUser};
 
-pub fn add(pool: DbPool, email: String, login: String, password: String) -> Result<SlimUser, ServiceError> {
+pub fn add(pool: DbPool, email: String, login: String, password: String, language: &'static str) -> Result<SlimUser, ServiceError> {
     let conn = &pool.get().unwrap();
-    let user = NewUser::with_details(login, email, password);
+    let user = NewUser::with_details(login, email, password, String::from(language));
     #[cfg(not(test))]
     let inserted_user: User = diesel::insert_into(dsl::users).values(&user).get_result(conn)?;
     #[cfg(test)]

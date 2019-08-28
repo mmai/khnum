@@ -1,3 +1,4 @@
+#![feature(proc_macro_hygiene)]
 #![allow(unused_imports)]
 
 #[macro_use] extern crate diesel;
@@ -18,13 +19,26 @@ use chrono::Duration;
 use diesel::{r2d2::ConnectionManager};
 use dotenv::dotenv;
 
+use actix_i18n::Translations;
+use gettext_macros::{compile_i18n, include_i18n, init_i18n};
+
 mod wiring;
 mod errors;
 mod schema;
 
+use crate::wiring::{DbPool, Config};
+
+init_i18n!("activue", en, fr); // Put this before modules containing messages to be translated
+
 mod users;
 
-use crate::wiring::{DbPool, Config};
+// fn hello(
+//     session: Session,
+//     i18n: I18n
+//     ) -> HttpResponse {
+//          let msg_expire = i18n!(&i18n.catalog, "your Invitation expires on");
+//          HttpResponse::Ok().json(msg_expire)
+// }
 
 fn main() -> std::io::Result<()> {
     dotenv().ok();
@@ -45,6 +59,7 @@ fn main() -> std::io::Result<()> {
                 pool: pool.clone(),
                 front_url: front_url.clone()
             })
+            .data(managed_state())
             .wrap(Logger::default())
             .wrap(CookieSession::signed(secret.as_bytes()).secure(false))
             // .wrap(IdentityService::new(
@@ -82,9 +97,18 @@ fn main() -> std::io::Result<()> {
                   //         web::post().to_async(users::controllers::register::register)
                   // ))
             )
+            // .service( web::resource("/hello").route(
+            //         web::get().to(hello)
+            // ))
             // serve static files
             .service(fs::Files::new("/", "./static/").index_file("index.html"))
     })
     .bind("127.0.0.1:8000")?
     .run()
 }
+
+pub fn managed_state() -> Translations {
+    include_i18n!()
+}
+
+compile_i18n!();

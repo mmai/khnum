@@ -1,4 +1,4 @@
-use crate::users;
+use crate::khnum::users;
 use actix_web::{web, test, http, App};
 use actix_http::HttpService;
 use actix_http_test::TestServer;
@@ -9,16 +9,16 @@ use std::time::Duration;
 use futures::future::Future;
 
 use diesel::prelude::*;
-use crate::schema::users::dsl;
-use crate::users::models::{FrontUser, User, NewUser};
-use crate::users::utils::{hash_password};
-use crate::wiring::Config;
+use crate::khnum::schema::users::dsl;
+use crate::khnum::users::models::{FrontUser, User, NewUser};
+use crate::khnum::users::utils::{hash_password};
+use crate::khnum::wiring::Config;
 
 #[test]
 fn test_login() {
     dotenv().ok();
     let mut srv = TestServer::new( || {
-        let pool = crate::wiring::test_conn_init();
+        let pool = crate::khnum::wiring::test_conn_init();
         //Insert test data 
         let conn = &pool.get().unwrap();
         let hashed_password = hash_password("password").expect("Error hashing password");
@@ -102,7 +102,7 @@ use regex::Regex;
 fn test_logout() {
     dotenv().ok();
     let mut srv = TestServer::new( || {
-        let pool = crate::wiring::test_conn_init();
+        let pool = crate::khnum::wiring::test_conn_init();
         //Insert test data 
         let conn = &pool.get().unwrap();
         let hashed_password = hash_password("password").expect("Error hashing password");

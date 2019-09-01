@@ -13,9 +13,9 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 # src/users/controllers/register.rs:190
-msgid "Please click on the link below to complete registration"
-msgstr "Please click on the link below to complete registration"
+#~ msgid "Please click on the link below to complete registration"
+#~ msgstr "Please click on the link below to complete registration"
 
 # src/users/controllers/register.rs:191
-msgid "your Invitation expires on"
-msgstr "your Invitation expires on"
+#~ msgid "your Invitation expires on"
+#~ msgstr "your Invitation expires on"

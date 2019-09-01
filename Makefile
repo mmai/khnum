@@ -43,9 +43,9 @@ $(FRONT_I18N_OUTPUT_DIR)/translations.json: $(FRONT_LOCALE_FILES)
 services:
 	docker-compose up -d
 initdb: services
-	diesel setup --migration-dir migrations/postgres/
+	diesel setup --config-file diesel-khnum.toml --migration-dir migrations/khnum/postgres/
 migrate:
-	diesel migration run --migration-dir migrations/postgres/
+	diesel migration run --config-file diesel-khnum.toml --migration-dir migrations/khnum/postgres/
 # sentry: 
 # 	docker-compose -f sentry-docker-compose.yml up 
 test:

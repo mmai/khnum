@@ -2,7 +2,7 @@ use diesel::prelude::{Connection, PgConnection, SqliteConnection};
 use diesel::r2d2;
 use num_cpus;
 use futures::future::Future;
-use crate::errors::ServiceError;
+use crate::khnum::errors::ServiceError;
 
 // #[cfg(not(any(feature = "sqlite", feature = "postgres")))]
 // compile_error!("Either feature \"sqlite\" or \"postgres\" must be enabled for this crate.");
@@ -37,7 +37,7 @@ pub fn db_init(db_url: String) -> DbPool {
 // ================== Test database initialization
 // #[cfg(feature = "sqlite")]
 #[cfg(test)]
-embed_migrations!("migrations/sqlite");
+embed_migrations!("migrations/khnum/sqlite");
 
 // #[cfg(feature = "sqlite")]
 #[cfg(test)]

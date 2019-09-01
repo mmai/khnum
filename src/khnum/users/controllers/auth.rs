@@ -4,12 +4,12 @@ use actix_web::{web, Error, error::BlockingError, HttpRequest, HttpResponse, Res
 
 use futures::future::{Future, result};
 
-use crate::wiring::{DbPool, Config};
-use crate::errors::ServiceError;
+use crate::khnum::wiring::{DbPool, Config};
+use crate::khnum::errors::ServiceError;
 
-use crate::users::repository::auth_handler;
-use crate::users::utils::create_token;
-use crate::users::models;
+use crate::khnum::users::repository::auth_handler;
+use crate::khnum::users::utils::create_token;
+use crate::khnum::users::models;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AuthData {

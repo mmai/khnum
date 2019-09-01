@@ -3,8 +3,8 @@ use chrono::{Duration, Local};
 use jsonwebtoken::{decode, encode, Header, Validation};
 use url::percent_encoding::{utf8_percent_encode, percent_decode, PATH_SEGMENT_ENCODE_SET};
 
-use crate::errors::ServiceError;
-use crate::users::models::SlimUser;
+use crate::khnum::errors::ServiceError;
+use crate::khnum::users::models::SlimUser;
 
 pub fn hash_password(plain: &str) -> Result<String, ServiceError> {
     // get the hashing cost from the env variable or use default

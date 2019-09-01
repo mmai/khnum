@@ -150,7 +150,7 @@ fn send_confirmation(email: String, expires_at: NaiveDateTime) -> CommandResult 
     // println!("{}", recipient);
 
     let email = Email::builder()
-        .from((sending_email, "Activue"))
+        .from((sending_email, "khnum"))
         .to(recipient)
         .subject("Password reset")
         .html(email_body)

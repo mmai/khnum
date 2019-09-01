@@ -2,7 +2,7 @@
   <v-app>
     <v-app-bar app>
       <v-toolbar-title class="headline text-uppercase">
-        <span>Activue</span>
+        <span>khnum</span>
         <span class="font-weight-light"> An Actix + Vue experiment</span>
       </v-toolbar-title>
       <v-spacer></v-spacer>
@@ -11,7 +11,7 @@
       </span>
       <v-btn
         text
-        href="https://github.com/mmai/activue/releases/latest"
+        href="https://github.com/mmai/khnum/releases/latest"
         target="_blank"
       >
       </v-btn>

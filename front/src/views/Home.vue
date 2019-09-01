@@ -12,7 +12,7 @@
 
       <v-flex mb-4>
         <h1 class="display-2 font-weight-bold mb-3" v-translate>
-          Welcome to Activue
+          Welcome to Khnum
         </h1>
         <div>
           <select name="language" v-model="$language.current">

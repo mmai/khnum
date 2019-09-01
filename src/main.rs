@@ -28,7 +28,7 @@ mod schema;
 
 use crate::wiring::{DbPool, Config};
 
-init_i18n!("activue", en, fr); // Put this before modules containing messages to be translated
+init_i18n!("khnum", en, fr); // Put this before modules containing messages to be translated
 
 mod users;
 
@@ -42,7 +42,7 @@ mod users;
 
 fn main() -> std::io::Result<()> {
     dotenv().ok();
-    std::env::set_var( "RUST_LOG", "activue=debug,actix_web=info,actix_server=info",);
+    std::env::set_var( "RUST_LOG", "khnum=debug,actix_web=info,actix_server=info",);
     std::env::set_var("RUST_BACKTRACE", "1");//XXX works only for panic! macro
     env_logger::init();
     let front_url = dotenv::var("FRONT_URL").expect("FRONT_URL must be set");

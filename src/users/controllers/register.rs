@@ -198,9 +198,9 @@ fn send_confirmation(catalog: &Catalog, username: String, hpassword: String, ema
     // println!("{}", recipient);
 
     let email = Email::builder()
-        .from((sending_email, "Activue"))
+        .from((sending_email, "khnum"))
         .to(recipient)
-        .subject("You have been invited to join Activue")
+        .subject("You have been invited to join khnum")
         .html(email_body)
         .build();
     assert!(email.is_ok());

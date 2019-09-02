@@ -62,4 +62,4 @@ run:
 frontrun:
 	cd front && yarn run serve
 doc:
-	cargo doc --open
+	cargo +nightly doc --open

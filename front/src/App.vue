@@ -1,29 +1,40 @@
 <template>
-  <div id="app">
-    <div id="nav">
-      <router-link to="/">Home</router-link> |
-      <router-link to="/register">Register</router-link>
-    </div>
-    <router-view />
-  </div>
+  <v-app>
+    <v-app-bar app>
+      <v-toolbar-title class="headline text-uppercase">
+        <span>khnum</span>
+        <span class="font-weight-light"> An Actix + Vue experiment</span>
+      </v-toolbar-title>
+      <v-spacer></v-spacer>
+      <span class="mr-2">
+        <auth></auth>
+      </span>
+      <v-btn
+        text
+        href="https://github.com/mmai/khnum/releases/latest"
+        target="_blank"
+      >
+      </v-btn>
+    </v-app-bar>
+
+    <v-content>
+      <div id="nav"><router-link to="/">Home</router-link> |</div>
+      <router-view />
+    </v-content>
+  </v-app>
 </template>
 
-<style lang="scss">
-#app {
-  font-family: "Avenir", Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-}
-#nav {
-  padding: 30px;
-  a {
-    font-weight: bold;
-    color: #2c3e50;
-    &.router-link-exact-active {
-      color: #42b983;
-    }
-  }
-}
-</style>
+<script>
+// @ is an alias to /src
+import Auth from "@/components/Auth.vue";
+
+export default {
+  name: "App",
+  components: {
+    Auth
+  },
+  data: () => ({
+    //
+  })
+};
+</script>

@@ -1,6 +1,6 @@
 use actix_web::{error::ResponseError, HttpResponse};
 use derive_more::Display;
-use diesel::result::{DatabaseErrorKind, Error};
+use diesel::result::{DatabaseErrorKind, Error as DBError};
 use std::convert::From;
 use uuid::ParseError;
 use actix::MailboxError;
@@ -13,8 +13,8 @@ pub enum ServiceError {
     #[display(fmt = "BadRequest: {}", _0)]
     BadRequest(String),
 
-    #[display(fmt = "Unauthorized")]
-    Unauthorized,
+    #[display(fmt = "Unauthorized: {}", _0)]
+    Unauthorized(String),
 }
 
 // impl ResponseError trait allows to convert our errors into http responses with appropriate data
@@ -26,8 +26,8 @@ impl ResponseError for ServiceError {
             ServiceError::BadRequest(ref message) => {
                 HttpResponse::BadRequest().json(message)
             }
-            ServiceError::Unauthorized => {
-                HttpResponse::Unauthorized().json("Unauthorized")
+            ServiceError::Unauthorized(ref message) => {
+                HttpResponse::Unauthorized().json(message)
             }
         }
     }
@@ -47,12 +47,12 @@ impl From<ParseError> for ServiceError {
     }
 }
 
-impl From<Error> for ServiceError {
-    fn from(error: Error) -> ServiceError {
+impl From<DBError> for ServiceError {
+    fn from(error: DBError) -> ServiceError {
         // Right now we just care about UniqueViolation from diesel
         // But this would be helpful to easily map errors as our app grows
         match error {
-            Error::DatabaseError(kind, info) => {
+            DBError::DatabaseError(_kind, info) => {
                 // if let DatabaseErrorKind::UniqueViolation = kind {
                     let message =
                         info.details().unwrap_or_else(|| info.message()).to_string();
@@ -60,7 +60,10 @@ impl From<Error> for ServiceError {
                 // }
                 // ServiceError::InternalServerError
             }
-            _ => ServiceError::InternalServerError,
+            _ => {
+                // println!("debug: default error {:?}", error);
+                ServiceError::InternalServerError
+            },
         }
     }
 }

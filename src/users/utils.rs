@@ -71,7 +71,7 @@ pub fn create_token(data: &SlimUser) -> Result<String, ServiceError> {
 pub fn decode_token(token: &str) -> Result<SlimUser, ServiceError> {
     decode::<Claims>(token, get_secret().as_ref(), &Validation::default())
         .map(|data| Ok(data.claims.into()))
-        .map_err(|_err| ServiceError::Unauthorized)?
+        .map_err(|_err| ServiceError::Unauthorized("-".into()))?
 }
 
 fn get_secret() -> String {

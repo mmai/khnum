@@ -1,13 +1,21 @@
 # Architecture
 
+## Errors
+
+* cf. https://gill.net.in/posts/auth-microservice-rust-actix-web1.0-diesel-complete-tutorial/
+
+## Domain driven design / CQRS
+
+https://github.com/KodrAus/rust-web-app
+
 ## Users
 
 ## Registration
 
-* Inspiration: https://neosmart.net/blog/2015/using-hmac-signatures-to-avoid-database-writes/
-* Hashing is done via bcrypt
+* initially based on https://gill.net.in/posts/auth-microservice-rust-actix-web1.0-diesel-complete-tutorial/
+* but without storing invitations : https://neosmart.net/blog/2015/using-hmac-signatures-to-avoid-database-writes/
 
-Process : 
+* Hashing is done via bcrypt
 
 Form (email) -> post to
 /register/request 
@@ -22,10 +30,11 @@ Form (username, password) (with session cookie) -> post to
 /register/validate
   -> get session email
   -> check email not taken
+  -> check username not taken
   -> hash password
   -> create user
 
-## Forgotten  password TODO
+## Forgotten  password
 
 Form (email) -> post to
 /user/forgotten 
@@ -42,7 +51,7 @@ Form (password) (with session cookie) -> post to
   -> hash password
   -> update user
 
-## Login TODO
+## Login
 
 Form (login, password) -> post to
 /login
@@ -54,7 +63,7 @@ protected pages :
   -> check user exists
   -> check user rights
 
-## Logout TODO
+## Logout
 
 /logout
  -> invalidate session cookie

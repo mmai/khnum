@@ -19,6 +19,15 @@ pub type MyConnection = PgConnection;
 
 pub type DbPool = r2d2::Pool<r2d2::ConnectionManager<MyConnection>>;
 
+pub struct Config {
+    pub pool: DbPool,
+    pub front_url: String
+}
+
+pub fn make_front_url (root_url: &String, url: &str) -> String {
+    format!("{}/#{}", root_url, url)
+}
+
 #[cfg_attr(tarpaulin, skip)]
 pub fn db_init(db_url: String) -> DbPool {
     let manager = r2d2::ConnectionManager::<MyConnection>::new(db_url);
@@ -36,7 +45,7 @@ pub fn test_conn_init() -> DbPool {
     let manager = r2d2::ConnectionManager::<MyConnection>::new(":memory:");
     let pool = r2d2::Pool::builder().max_size(2).build(manager).expect("Failed to create pool.");
     let conn = &pool.get().unwrap();
-    embedded_migrations::run(conn);
+    let _res = embedded_migrations::run(conn);
     pool
 }
 

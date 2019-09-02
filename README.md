@@ -4,6 +4,30 @@
 
 Experiments with Actix and Vuejs (WIP)
 
+## Start a new project based on Khnum
+
+Install framework
+```sh
+curl https://raw.githubusercontent.com/mmai/khnum/master/bin/khnum-new.sh | bash -s myproject
+```
+Init postgresql database (with docker)
+
+```sh
+cd myproject
+make initdb
+make migrate
+```
+
+Start backend server
+```sh
+make run
+```
+Start frontend developpement server
+
+```sh
+make frontrun
+```
+
 ## TODO
 
 * users management

@@ -1,4 +1,4 @@
-use crate::users;
+use crate::khnum::users;
 use actix_web::{web, test, http, App};
 use actix_http::HttpService;
 use actix_http_test::TestServer;
@@ -10,9 +10,9 @@ use futures::future::Future;
 use super::CommandResult;
 
 use diesel::prelude::*;
-use crate::schema::users::dsl;
-use crate::users::models::{SlimUser, User, NewUser};
-use crate::wiring::Config;
+use crate::khnum::schema::users::dsl;
+use crate::khnum::users::models::{SlimUser, User, NewUser};
+use crate::khnum::wiring::Config;
 
 use actix_i18n::Translations;
 use gettext_macros::include_i18n;
@@ -25,7 +25,7 @@ pub fn managed_state() -> Translations {
 fn test_request() {
     dotenv().ok();
     let mut srv = TestServer::new( || {
-        let pool = crate::wiring::test_conn_init();
+        let pool = crate::khnum::wiring::test_conn_init();
         //Insert test data 
         let conn = &pool.get().unwrap();
         let user = NewUser::with_details(String::from("login"), String::from("email@toto.fr"), String::from("password"), String::from("fr_FR"));
@@ -84,7 +84,7 @@ use regex::Regex;
 fn test_validate() {
     dotenv().ok();
     let mut srv = TestServer::new( move || {
-        let pool = crate::wiring::test_conn_init();
+        let pool = crate::khnum::wiring::test_conn_init();
         //Insert test data 
         let conn = &pool.get().unwrap();
         let user = NewUser::with_details(String::from("login"), String::from("email@toto.fr"), String::from("password"), String::from("fr_FR"));

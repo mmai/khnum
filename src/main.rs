@@ -22,15 +22,13 @@ use dotenv::dotenv;
 use actix_i18n::Translations;
 use gettext_macros::{compile_i18n, include_i18n, init_i18n};
 
-mod wiring;
-mod errors;
-mod schema;
+use crate::khnum::wiring;
 
-use crate::wiring::{DbPool, Config};
+mod khnum;
+
+use crate::khnum::wiring::{DbPool, Config};
 
 init_i18n!("khnum", en, fr); // Put this before modules containing messages to be translated
-
-mod users;
 
 // fn hello(
 //     session: Session,
@@ -72,29 +70,29 @@ fn main() -> std::io::Result<()> {
             // ))
             .service( web::scope("/api") // everything under '/api/' route
                     .service( web::resource("/auth") // routes for authentication
-                            .route(web::post().to_async(users::controllers::auth::login))
-                            .route(web::delete().to(users::controllers::auth::logout))
-                            .route(web::get().to_async(users::controllers::auth::get_me)),
+                            .route(web::post().to_async(khnum::users::controllers::auth::login))
+                            .route(web::delete().to(khnum::users::controllers::auth::logout))
+                            .route(web::get().to_async(khnum::users::controllers::auth::get_me)),
                     )
                     // .service( web::resource("/register").route( 
-                    //         web::post().to_async(users::controllers::register::register),
+                    //         web::post().to_async(khnum::users::controllers::register::register),
                     //     ),
                     // )
                     // .service( web::resource("/validate").route( 
-                    //         web::post().to_async(users::controllers::register::register),
+                    //         web::post().to_async(khnum::users::controllers::register::register),
                     //     ),
                     // )
             )
             .service( web::scope("/register") // everything under '/register/' route
                   .service( web::resource("/request").route(
-                      web::post().to_async(users::controllers::register::request)
+                      web::post().to_async(khnum::users::controllers::register::request)
                   ))
                   // route to validate registration
                   .service( web::resource("/register/{hashlink}/{login}/{hpass}/{email}/{expires_at}").route(
-                          web::get().to_async(users::controllers::register::register)
+                          web::get().to_async(khnum::users::controllers::register::register)
                   ))
                   // .service( web::resource("/validate").route(
-                  //         web::post().to_async(users::controllers::register::register)
+                  //         web::post().to_async(khnum::users::controllers::register::register)
                   // ))
             )
             // .service( web::resource("/hello").route(

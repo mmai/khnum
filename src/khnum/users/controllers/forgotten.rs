@@ -12,12 +12,12 @@ use lettre::file::FileTransport;
 use lettre::smtp::authentication::{Credentials, Mechanism};
 use lettre::sendmail::SendmailTransport;
 
-use crate::wiring::{DbPool, Config};
-use crate::errors::ServiceError;
+use crate::khnum::wiring::{DbPool, Config};
+use crate::khnum::errors::ServiceError;
 
-use crate::users::repository::user_handler;
-use crate::users::models::{SlimUser, User};
-use crate::users::utils::{hash_password, to_url, from_url};
+use crate::khnum::users::repository::user_handler;
+use crate::khnum::users::models::{SlimUser, User};
+use crate::khnum::users::utils::{hash_password, to_url, from_url};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CommandResult {

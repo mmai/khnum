@@ -2,7 +2,7 @@ use chrono::{Local, Duration, NaiveDateTime};
 use std::convert::From;
 use uuid::Uuid;
 
-use crate::schema::{users};
+use crate::khnum::schema::{users};
 
 #[derive(Debug, Serialize, Deserialize, Queryable)]
 // XXX keep same field order as in schema.rs

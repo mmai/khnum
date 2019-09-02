@@ -4,15 +4,15 @@ use actix_web::{middleware::identity::Identity, FromRequest};
 use bcrypt::verify;
 use diesel::prelude::*;
 
-use crate::wiring::{DbPool, Config};
+use crate::khnum::wiring::{DbPool, Config};
 
-use crate::errors::ServiceError;
-use crate::users::models::{SlimUser, User};
-use crate::users::utils::decode_token;
-use crate::wiring::MyConnection;
+use crate::khnum::errors::ServiceError;
+use crate::khnum::users::models::{SlimUser, User};
+use crate::khnum::users::utils::decode_token;
+use crate::khnum::wiring::MyConnection;
 
 pub fn auth(pool: DbPool, login: String, password: String) -> Result<User, ServiceError> {
-    use crate::schema::users::dsl;
+    use crate::khnum::schema::users::dsl;
     let conn: &MyConnection = &pool.get().unwrap();
 
     let mut items = dsl::users.filter(dsl::login.eq(&login)).load::<User>(conn)?;

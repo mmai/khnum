@@ -3,11 +3,11 @@ use chrono::{Local, NaiveDateTime};
 use diesel::prelude::*;
 use uuid::Uuid;
 
-use crate::wiring::DbPool;
-use crate::errors::ServiceError;
+use crate::khnum::wiring::DbPool;
+use crate::khnum::errors::ServiceError;
 
-use crate::schema::users::dsl;
-use crate::users::models::{SlimUser, User, NewUser};
+use crate::khnum::schema::users::dsl;
+use crate::khnum::users::models::{SlimUser, User, NewUser};
 
 pub fn add(pool: DbPool, email: String, login: String, password: String, language: &'static str) -> Result<SlimUser, ServiceError> {
     let conn = &pool.get().unwrap();
@@ -39,7 +39,7 @@ pub fn update_password(pool: DbPool, login: String, password: String) -> Result<
 }
 
 pub fn email_exists(pool: DbPool, email: &String) -> Result<bool, ServiceError> {
-    use crate::schema::users::dsl;
+    use crate::khnum::schema::users::dsl;
     let conn = &pool.get().unwrap();
     // let items = dsl::users.filter( dsl::email.eq(email)).load::<User>(conn)?;
     // Ok(items.into_iter().map(|item| item.into()).collect())
@@ -53,7 +53,7 @@ pub fn email_exists(pool: DbPool, email: &String) -> Result<bool, ServiceError> 
 }
 
 pub fn fetch(pool: DbPool, email: &String, login: &String) -> Result<Vec<SlimUser>, ServiceError> {
-    use crate::schema::users::dsl;
+    use crate::khnum::schema::users::dsl;
     let conn = &pool.get().unwrap();
     let items = dsl::users.filter(
         dsl::email.eq(email)

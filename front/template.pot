@@ -5,11 +5,6 @@ msgstr ""
 "Generated-By: easygettext\n"
 "Project-Id-Version: \n"
 
-#. commentaire exemple
-#: ./front/src/views/Home.vue:28
-msgid "example of using"
-msgstr ""
-
 #: ./front/src/views/Home.vue:13
-msgid "Welcome to Khnum"
+msgid "Welcome to Kbooks"
 msgstr ""

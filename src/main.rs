@@ -24,11 +24,11 @@ use gettext_macros::{compile_i18n, include_i18n, init_i18n};
 
 use crate::khnum::wiring;
 
-mod khnum;
-
 use crate::khnum::wiring::{DbPool, Config};
 
 init_i18n!("khnum", en, fr); // Put this before modules containing messages to be translated
+
+mod khnum;
 
 // fn hello(
 //     session: Session,

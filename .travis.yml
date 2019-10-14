@@ -14,10 +14,13 @@ before_cache: |
     cargo install cargo-tarpaulin -f
   fi
 
+before_script:
+  - cp .env.example .env
+
 script:
-- cargo clean
-- cargo build
-- cargo test
+  - cargo clean
+  - cargo build
+  - cargo test
 
 after_success: |
   if [[ "$TRAVIS_RUST_VERSION" == nightly ]]; then

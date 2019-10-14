@@ -1,6 +1,6 @@
 # Khnum
 
-[![Build Status](https://travis-ci.org/mmai/activue.svg?branch=master)](https://travis-ci.org/mmai/activue) [![Coverage Status](https://coveralls.io/repos/github/mmai/activue/badge.svg?branch=master)](https://coveralls.io/github/mmai/activue?branch=master)
+[![Build Status](https://travis-ci.org/mmai/khnum.svg?branch=master)](https://travis-ci.org/mmai/khnum) [![Coverage Status](https://coveralls.io/repos/github/mmai/khnum/badge.svg?branch=master)](https://coveralls.io/github/mmai/khnum?branch=master)
 
 Experiments with Actix and Vuejs (WIP)
 

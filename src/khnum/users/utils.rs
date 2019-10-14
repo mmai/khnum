@@ -23,6 +23,7 @@ pub fn from_url(data: &str) -> String {
     percent_decode(data.as_bytes()).decode_utf8().unwrap().to_string()
 }
 
+/* XXX for JWT tokens ...
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {
     // issuer
@@ -77,3 +78,5 @@ pub fn decode_token(token: &str) -> Result<SlimUser, ServiceError> {
 fn get_secret() -> String {
     std::env::var("JWT_SECRET").unwrap_or_else(|_| "my secret".into())
 }
+// end for JWT tokens
+*/

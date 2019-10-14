@@ -8,7 +8,7 @@ use crate::khnum::wiring::{DbPool, Config};
 
 use crate::khnum::errors::ServiceError;
 use crate::khnum::users::models::{SlimUser, User};
-use crate::khnum::users::utils::decode_token;
+// use crate::khnum::users::utils::decode_token; //for JWT token
 use crate::khnum::wiring::MyConnection;
 
 pub fn auth(pool: DbPool, login: String, password: String) -> Result<User, ServiceError> {

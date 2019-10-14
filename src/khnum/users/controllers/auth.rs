@@ -8,7 +8,7 @@ use crate::khnum::wiring::{DbPool, Config};
 use crate::khnum::errors::ServiceError;
 
 use crate::khnum::users::repository::auth_handler;
-use crate::khnum::users::utils::create_token;
+// use crate::khnum::users::utils::create_token; //for JWT token
 use crate::khnum::users::models;
 
 #[derive(Debug, Serialize, Deserialize)]

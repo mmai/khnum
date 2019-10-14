@@ -38,6 +38,7 @@ init_i18n!("khnum", en, fr); // Put this before modules containing messages to b
 //          HttpResponse::Ok().json(msg_expire)
 // }
 
+#[cfg_attr(tarpaulin, skip)]
 fn main() -> std::io::Result<()> {
     dotenv().ok();
     std::env::set_var( "RUST_LOG", "khnum=debug,actix_web=info,actix_server=info",);
@@ -105,6 +106,7 @@ fn main() -> std::io::Result<()> {
     .run()
 }
 
+#[cfg_attr(tarpaulin, skip)]
 pub fn managed_state() -> Translations {
     include_i18n!()
 }
